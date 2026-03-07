@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>photo-emoji-3d-sticker</title>
     </head>
-    <script src="wasm_exec.js?v=1772874696"></script>
+    <script src="wasm_exec.js?v=1772874975"></script>
     <script>
     // Polyfill
     if (!WebAssembly.instantiateStreaming) {
@@ -15,10 +15,153 @@
         };
     }
 
-    const go = new Go();
-    WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772874696"), go.importObject).then(result => {
-        go.run(result.instance);
-    });
+    const bootProgressBar = (() => {
+        let root = null;
+        let bar = null;
+        let timer = null;
+        let progress = 0;
+        let attached = false;
+
+        function mount() {
+            if (root && attached) {
+                return;
+            }
+            if (!root) {
+                root = document.createElement('div');
+                root.style.position = 'fixed';
+                root.style.left = '20px';
+                root.style.right = '20px';
+                root.style.top = '50%';
+                root.style.transform = 'translateY(-50%)';
+                root.style.zIndex = '9000';
+                root.style.pointerEvents = 'none';
+                root.style.maxWidth = '360px';
+                root.style.margin = '0 auto';
+
+                const panel = document.createElement('div');
+                panel.style.padding = '14px 16px 12px';
+                panel.style.borderRadius = '14px';
+                panel.style.background = 'rgba(255, 255, 255, 0.94)';
+                panel.style.border = '1px solid rgba(0, 0, 0, 0.08)';
+                panel.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.18)';
+
+                const label = document.createElement('div');
+                label.textContent = '起動中...';
+                label.style.marginBottom = '8px';
+                label.style.textAlign = 'center';
+                label.style.color = '#222';
+                label.style.fontSize = '14px';
+                label.style.fontWeight = '700';
+                label.style.fontFamily = '"Hiragino Maru Gothic ProN", "ヒラギノ丸ゴ ProN W4", "Yu Gothic", "YuGothic", "Meiryo", sans-serif';
+
+                const track = document.createElement('div');
+                track.style.width = '100%';
+                track.style.height = '8px';
+                track.style.borderRadius = '999px';
+                track.style.overflow = 'hidden';
+                track.style.background = 'rgba(0, 0, 0, 0.15)';
+
+                bar = document.createElement('div');
+                bar.style.height = '100%';
+                bar.style.width = '0%';
+                bar.style.background = '#69a51f';
+                bar.style.transition = 'width 120ms linear';
+
+                track.appendChild(bar);
+                panel.appendChild(label);
+                panel.appendChild(track);
+                root.appendChild(panel);
+            }
+
+            const parent = document.body || document.documentElement;
+            if (parent && !attached) {
+                parent.appendChild(root);
+                attached = true;
+            }
+        }
+
+        function set(value) {
+            progress = Math.max(progress, Math.min(100, value));
+            if (bar) {
+                bar.style.width = progress + '%';
+            }
+        }
+
+        function show() {
+            mount();
+            set(8);
+            if (timer) {
+                clearInterval(timer);
+            }
+            timer = setInterval(() => {
+                set(Math.min(92, progress + 3));
+            }, 140);
+        }
+
+        function hide() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+            set(100);
+            setTimeout(() => {
+                if (root && root.parentNode) {
+                    root.parentNode.removeChild(root);
+                }
+                attached = false;
+                progress = 0;
+                if (bar) {
+                    bar.style.width = '0%';
+                }
+            }, 180);
+        }
+
+        return { show, set, hide };
+    })();
+
+    function waitForCanvasReady(timeoutMs = 10000) {
+        return new Promise((resolve) => {
+            const done = () => {
+                if (observer) {
+                    observer.disconnect();
+                }
+                clearTimeout(timeoutId);
+                resolve();
+            };
+            const isReady = () => {
+                const canvas = document.querySelector('canvas');
+                return canvas && canvas.width > 0 && canvas.height > 0;
+            };
+            if (isReady()) {
+                resolve();
+                return;
+            }
+            const observer = new MutationObserver(() => {
+                if (isReady()) {
+                    done();
+                }
+            });
+            observer.observe(document.documentElement, { childList: true, subtree: true });
+            const timeoutId = setTimeout(done, timeoutMs);
+        });
+    }
+
+    async function bootWasm() {
+        bootProgressBar.show();
+        const go = new Go();
+        try {
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772874975"), go.importObject);
+            bootProgressBar.set(94);
+            go.run(result.instance);
+            await waitForCanvasReady();
+        } catch (error) {
+            console.error("failed to start wasm:", error);
+        } finally {
+            bootProgressBar.hide();
+        }
+    }
+
+    bootWasm();
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
