@@ -17,6 +17,7 @@ BASE_BRANCH="${CHATOPS_PUBLIC_BASE_BRANCH:-main}"
 PREVIEW_ROOT="${CHATOPS_PREVIEW_ROOT_DIR:-docs/previews}"
 PREVIEW_SINGLE_SLOT="${CHATOPS_PREVIEW_SINGLE_SLOT:-true}"
 PREVIEW_TARGET_DIR="${CHATOPS_PREVIEW_TARGET_DIR:-${PREVIEW_ROOT}/latest}"
+PREVIEW_CACHE_BUSTER="${CHATOPS_PREVIEW_CACHE_BUSTER:-}"
 WAIT_PAGES="${CHATOPS_WAIT_PAGES_DEPLOY:-true}"
 PAGES_TIMEOUT_SECONDS="${CHATOPS_PAGES_TIMEOUT_SECONDS:-240}"
 PAGES_POLL_INTERVAL_SECONDS="${CHATOPS_PAGES_POLL_INTERVAL_SECONDS:-5}"
@@ -78,6 +79,15 @@ fi
 # Fallback: carry wasm_exec.js from web/ when docs does not provide it.
 if [[ ! -f "${TARGET_DIR}/wasm_exec.js" && -f "${PRIVATE_WEB_DIR}/wasm_exec.js" ]]; then
   cp "${PRIVATE_WEB_DIR}/wasm_exec.js" "${TARGET_DIR}/wasm_exec.js"
+fi
+
+cache_buster="${PREVIEW_CACHE_BUSTER}"
+if [[ -z "${cache_buster}" ]]; then
+  cache_buster="$(date +%s)"
+fi
+if [[ -f "${TARGET_DIR}/index.html" ]]; then
+  perl -0pi -e 's#wasm_exec\.js\?v=[^"'"'"'[:space:])]+#wasm_exec.js#g; s#game\.wasm\?v=[^"'"'"'[:space:])]+#game.wasm#g' "${TARGET_DIR}/index.html"
+  perl -0pi -e 's#wasm_exec\.js#wasm_exec.js?v='"${cache_buster}"'#g; s#game\.wasm#game.wasm?v='"${cache_buster}"'#g' "${TARGET_DIR}/index.html"
 fi
 
 git add -A -f "${PREVIEW_ROOT}"
