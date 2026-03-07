@@ -16,7 +16,7 @@ PUBLIC_REPO_DIR="${CHATOPS_PUBLIC_REPO_DIR:-${DEFAULT_PUBLIC_REPO_DIR}}"
 BASE_BRANCH="${CHATOPS_PUBLIC_BASE_BRANCH:-main}"
 PREVIEW_ROOT="${CHATOPS_PREVIEW_ROOT_DIR:-docs/previews}"
 PREVIEW_SINGLE_SLOT="${CHATOPS_PREVIEW_SINGLE_SLOT:-true}"
-PREVIEW_TARGET_DIR="${CHATOPS_PREVIEW_TARGET_DIR:-${PREVIEW_ROOT}/latest}"
+PREVIEW_TARGET_DIR="${CHATOPS_PREVIEW_TARGET_DIR:-docs/latest}"
 PREVIEW_CACHE_BUSTER="${CHATOPS_PREVIEW_CACHE_BUSTER:-}"
 WAIT_PAGES="${CHATOPS_WAIT_PAGES_DEPLOY:-true}"
 PAGES_TIMEOUT_SECONDS="${CHATOPS_PAGES_TIMEOUT_SECONDS:-240}"
@@ -160,7 +160,11 @@ build_default_url() {
   owner="${owner_repo%%/*}"
   repo="${owner_repo##*/}"
   public_path="${target_rel#docs/}"
-  printf 'https://%s.github.io/%s/%s/' "${owner}" "${repo}" "${public_path}"
+  if [[ "${target_rel}" == "docs/latest" ]]; then
+    printf 'https://%s.github.io/%s/' "${owner}" "${repo}"
+  else
+    printf 'https://%s.github.io/%s/%s/' "${owner}" "${repo}" "${public_path}"
+  fi
 }
 
 if [[ -n "${CHATOPS_PREVIEW_URL_TEMPLATE:-}" ]]; then

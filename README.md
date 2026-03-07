@@ -7,7 +7,7 @@ Discord ChatOps + preview hosting repository.
 This repository is the **host/orchestrator** side.
 - Run Discord bot and worker process.
 - Execute Codex-driven tasks against a separate private game repository.
-- Publish preview artifacts to this repository's `docs/previews/...` and serve via GitHub Pages.
+- Publish preview artifacts to this repository's `docs/latest` and serve via GitHub Pages.
 
 ## Core Components
 
@@ -78,14 +78,14 @@ CHATOPS_PREVIEW_CMD="/Users/ichibankunio/go/src/github.com/ichibankunio/mdmgde-h
 CHATOPS_PUBLIC_REPO_DIR="/Users/ichibankunio/go/src/github.com/ichibankunio/mdmgde-host"
 CHATOPS_PRIVATE_WEB_DIR="/abs/path/to/private-repo/web"
 CHATOPS_PREVIEW_SINGLE_SLOT=true
-CHATOPS_PREVIEW_TARGET_DIR="docs/previews/latest"
-CHATOPS_PREVIEW_URL_TEMPLATE="https://ichibankunio.github.io/mdmgde-host/previews/latest/"
+CHATOPS_PREVIEW_TARGET_DIR="docs/latest"
+CHATOPS_PREVIEW_URL_TEMPLATE="https://ichibankunio.github.io/mdmgde-host/"
 CHATOPS_WAIT_PAGES_DEPLOY=true
 CHATOPS_PAGES_TIMEOUT_SECONDS=240
 ```
 
 `deploy_preview_to_pages.sh` copies `private/docs/*` first, and if `index.html` is missing there, it falls back to `private/web/index.html` (and `wasm_exec.js`) so each game can keep a game-specific launcher page.
-`CHATOPS_PREVIEW_SINGLE_SLOT=true` keeps only one preview directory (default `docs/previews/latest`) and deletes older `docs/previews/*` entries on each deploy.
+`CHATOPS_PREVIEW_SINGLE_SLOT=true` keeps only one preview directory (default `docs/latest`) and replaces its contents on each deploy.
 It also appends a cache-buster query to `game.wasm` and `wasm_exec.js` references in `index.html` on each deploy to avoid stale browser cache mismatches.
 
 Legacy single-project config (`CHATOPS_WORKDIR` + `CHATOPS_ALLOWED_REPOS`) is still supported.
@@ -119,7 +119,7 @@ Legacy single-project config (`CHATOPS_WORKDIR` + `CHATOPS_ALLOWED_REPOS`) is st
 This repo expects preview files under:
 
 ```text
-docs/previews/<branch-slug>/
+docs/latest
 ```
 
 GitHub Pages should be enabled for this repository.
