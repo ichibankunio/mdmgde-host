@@ -2,10 +2,15 @@
 <html lang="ja">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>photo-emoji-3d-sticker</title>
+        <style>
+            input, textarea {
+                font-size: 16px;
+            }
+        </style>
     </head>
-    <script src="wasm_exec.js?v=1772891014"></script>
+    <script src="wasm_exec.js?v=1772891777"></script>
     <script type="module">
     import data from "https://cdn.jsdelivr.net/npm/@emoji-mart/data@1.2.1/+esm";
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
@@ -76,19 +81,6 @@
     };
     </script>
     <script>
-    (() => {
-        // Disable pinch/double-tap zoom across the app.
-        const prevent = (event) => event.preventDefault();
-        document.addEventListener("gesturestart", prevent, { passive: false });
-        document.addEventListener("gesturechange", prevent, { passive: false });
-        document.addEventListener("gestureend", prevent, { passive: false });
-        document.addEventListener("touchmove", (event) => {
-            if (event.touches && event.touches.length > 1) {
-                event.preventDefault();
-            }
-        }, { passive: false });
-    })();
-
     // Polyfill
     if (!WebAssembly.instantiateStreaming) {
         WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -232,7 +224,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772891014"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772891777"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
