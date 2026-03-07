@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>photo-emoji-3d-sticker</title>
+    </head>
+    <script src="wasm_exec.js"></script>
+    <script>
+    // Polyfill
+    if (!WebAssembly.instantiateStreaming) {
+        WebAssembly.instantiateStreaming = async (resp, importObject) => {
+            const source = await (await resp).arrayBuffer();
+            return await WebAssembly.instantiate(source, importObject);
+        };
+    }
+
+    const go = new Go();
+    WebAssembly.instantiateStreaming(fetch("game.wasm"), go.importObject).then(result => {
+        go.run(result.instance);
+    });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    <script>
+        const saveProgressBar = (() => {
+            let root = null;
+            let bar = null;
+            let timer = null;
+            let progress = 0;
+            let visible = false;
+
+            function ensure() {
+                if (root) {
+                    return;
+                }
+
+                root = document.createElement('div');
+                root.style.position = 'fixed';
+                root.style.left = '16px';
+                root.style.right = '16px';
+                root.style.top = '50%';
+                root.style.transform = 'translateY(-50%)';
+                root.style.zIndex = '9999';
+                root.style.display = 'none';
+                root.style.pointerEvents = 'none';
+
+                const label = document.createElement('div');
+                label.textContent = '保存準備中...';
+                label.style.marginBottom = '8px';
+                label.style.textAlign = 'center';
+                label.style.color = '#222';
+                label.style.fontSize = '14px';
+                label.style.fontWeight = '700';
+                label.style.fontFamily = '"Hiragino Maru Gothic ProN", "Meiryo", sans-serif';
+                label.style.webkitTextStroke = '2px #fff';
+                label.style.textShadow = '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff';
+
+                const track = document.createElement('div');
+                track.style.width = '100%';
+                track.style.height = '8px';
+                track.style.borderRadius = '999px';
+                track.style.overflow = 'hidden';
+                track.style.background = 'rgba(0, 0, 0, 0.15)';
+
+                bar = document.createElement('div');
+                bar.style.height = '100%';
+                bar.style.width = '0%';
+                bar.style.background = '#69a51f';
+                bar.style.transition = 'width 140ms linear';
+
+                root.appendChild(label);
+                track.appendChild(bar);
+                root.appendChild(track);
+                document.body.appendChild(root);
+            }
+
+            function stop() {
+                if (timer) {
+                    clearInterval(timer);
+                    timer = null;
+                }
+            }
+
+            function show() {
+                ensure();
+                if (visible) {
+                    return;
+                }
+                visible = true;
+                stop();
+                progress = 12;
+                bar.style.width = progress + '%';
+                root.style.display = 'block';
+
+                timer = setInterval(() => {
+                    progress = Math.min(92, progress + 4);
+                    bar.style.width = progress + '%';
+                }, 120);
+            }
+
+            function hide() {
+                ensure();
+                visible = false;
+                stop();
+                progress = 100;
+                bar.style.width = progress + '%';
+                setTimeout(() => {
+                    if (!root) {
+                        return;
+                    }
+                    root.style.display = 'none';
+                    bar.style.width = '0%';
+                }, 140);
+            }
+
+            function prepare() {
+                ensure();
+            }
+
+            return { show, hide, prepare };
+        })();
+
+        window.addEventListener('load', () => {
+            saveProgressBar.prepare();
+        });
+
+        function showSaveProgress() {
+            saveProgressBar.show();
+        }
+
+        function hideSaveProgress() {
+            saveProgressBar.hide();
+        }
+
+        async function saveImage(bytes) {
+            console.log("js was called")
+            showSaveProgress();
+
+            const fileName = "hittsuki_" + getDate() + ".png";
+            const blob = new Blob([bytes], { type: 'image/png' });
+            const imageFile = new File([blob], fileName, { type: 'image/png' });
+
+            if (typeof navigator.share === 'function') {
+                const shareData = {
+                    files: [imageFile],
+                    title: 'hittsuki',
+                    text: '画像を保存または共有できます'
+                };
+
+                try {
+                    const canShareFiles = typeof navigator.canShare !== 'function' || navigator.canShare({ files: [imageFile] });
+                    if (canShareFiles) {
+                        hideSaveProgress();
+                        await navigator.share(shareData);
+                        return;
+                    }
+                } catch (error) {
+                    if (error && error.name === 'AbortError') {
+                        return;
+                    }
+                    console.log('share failed:', error);
+                }
+            }
+
+            const imageUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = imageUrl;
+            console.log(a.href);
+            a.download = fileName;
+            hideSaveProgress();
+            a.click();
+            URL.revokeObjectURL(imageUrl);
+        }
+
+        function getDate() {
+            let now = new Date();
+            let year = now.getFullYear();
+            let month = now.getMonth() + 1;
+            let date = now.getDate();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            let seconds = now.getSeconds();
+            month = month < 10 ? '0' + month : month;
+            date = date < 10 ? '0' + date : date;
+            hours = hours < 10 ? '0' + hours : hours;
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            seconds = seconds < 10 ? '0' + seconds : seconds;
+
+            let yyyymmddhhmmss = '' + year + month + date + hours + minutes + seconds;
+            return yyyymmddhhmmss;
+        }
+
+        function getRotation(src) {
+            return new Promise((resolve) => {
+                EXIF.getData(src, function(){
+                    var exifData = EXIF.pretty(this);
+
+                    let rotation = 0;
+
+                    if (exifData) {
+                        const orientation = Number(EXIF.getTag(this, "Orientation"));
+
+                        console.log(orientation);
+                        if (orientation === 3) {
+                            rotation = 180;
+                        } else if (orientation === 6) {
+                            rotation = 90;
+                        } else if (orientation === 8) {
+                            rotation = 270;
+                        }
+                    } else {
+                        console.log("doesn't have exif")
+                    }
+
+                    resolve(rotation);
+                });
+            });
+        }
+
+        async function loadImageFile(file) {
+            if (window.createImageBitmap) {
+                return await createImageBitmap(file);
+            }
+
+            return await new Promise((resolve, reject) => {
+                const objectUrl = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(img);
+                };
+                img.onerror = (e) => {
+                    URL.revokeObjectURL(objectUrl);
+                    reject(e);
+                };
+                img.src = objectUrl;
+            });
+        }
+
+        async function resizeImageToFHDBytes(file) {
+            const minShortSide = 1080;
+            const minLongSide = 1920;
+            const rotation = await getRotation(file);
+
+            const sourceImage = await loadImageFile(file);
+            const originalWidth = sourceImage.width;
+            const originalHeight = sourceImage.height;
+            const longSide = Math.max(originalWidth, originalHeight);
+            const shortSide = Math.min(originalWidth, originalHeight);
+            // Keep aspect ratio and downscale only up to the point where
+            // shortSide >= 1080 and longSide >= 1920 are still satisfied.
+            const minScaleToKeepBounds = Math.max(minLongSide / longSide, minShortSide / shortSide);
+            const scale = Math.min(1, minScaleToKeepBounds);
+
+            if (scale >= 1) {
+                if (sourceImage.close) {
+                    sourceImage.close();
+                }
+                return {
+                    bytes: new Uint8Array(await file.arrayBuffer()),
+                    rotation: rotation
+                };
+            }
+
+            const targetWidth = Math.max(1, Math.round(originalWidth * scale));
+            const targetHeight = Math.max(1, Math.round(originalHeight * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                if (sourceImage.close) {
+                    sourceImage.close();
+                }
+                throw new Error("failed to get canvas context");
+            }
+            ctx.drawImage(sourceImage, 0, 0, targetWidth, targetHeight);
+
+            if (sourceImage.close) {
+                sourceImage.close();
+            }
+
+            const outputType = file.type && file.type.startsWith("image/") ? file.type : "image/jpeg";
+            const outputBlob = await new Promise((resolve, reject) => {
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        reject(new Error("failed to convert canvas to blob"));
+                        return;
+                    }
+                    resolve(blob);
+                }, outputType, 0.92);
+            });
+
+            return {
+                bytes: new Uint8Array(await outputBlob.arrayBuffer()),
+                rotation: 0
+            };
+        }
+
+        function ImageResize(image_src, mime_type, width, height, rotate) {
+            var canvas = document.createElement('canvas');
+            if(rotate == 90 || rotate == 270) {
+                canvas.width = height;
+                canvas.height = width;
+            } else {
+                canvas.width = width;
+                canvas.height = height;
+            }
+            var ctx = canvas.getContext('2d');
+            if(rotate && rotate > 0) {
+                ctx.rotate(rotate * Math.PI / 180);
+                if(rotate == 90)
+                    ctx.translate(0, -height);
+                else if(rotate == 180)
+                    ctx.translate(-width, -height);
+                else if(rotate == 270)
+                    ctx.translate(-width, 0);
+            }
+            ctx.drawImage(image_src, 0, 0, width, height);
+            return canvas.toDataURL(mime_type);
+        }
+    </script>
+</html>
