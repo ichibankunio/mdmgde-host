@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
         <title>photo-emoji-3d-sticker</title>
     </head>
-    <script src="wasm_exec.js?v=1772890642"></script>
+    <script src="wasm_exec.js?v=1772891014"></script>
     <script type="module">
     import data from "https://cdn.jsdelivr.net/npm/@emoji-mart/data@1.2.1/+esm";
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
@@ -232,7 +232,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772890642"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772891014"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
