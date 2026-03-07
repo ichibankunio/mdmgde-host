@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>photo-emoji-3d-sticker</title>
     </head>
-    <script src="wasm_exec.js?v=1772873063"></script>
+    <script src="wasm_exec.js?v=1772874478"></script>
     <script>
     // Polyfill
     if (!WebAssembly.instantiateStreaming) {
@@ -16,7 +16,7 @@
     }
 
     const go = new Go();
-    WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772873063"), go.importObject).then(result => {
+    WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772874478"), go.importObject).then(result => {
         go.run(result.instance);
     });
     </script>
@@ -52,9 +52,13 @@
                 label.style.color = '#222';
                 label.style.fontSize = '14px';
                 label.style.fontWeight = '700';
-                label.style.fontFamily = '"Hiragino Maru Gothic ProN", "Arial Rounded MT Bold", "Yu Gothic", "Meiryo", sans-serif';
-                label.style.webkitTextStroke = '1.5px #fff';
-                label.style.textShadow = '1px 0 0 #fff, -1px 0 0 #fff, 0 1px 0 #fff, 0 -1px 0 #fff';
+                label.style.fontFamily = '"Hiragino Maru Gothic ProN", "ヒラギノ丸ゴ ProN W4", "Yu Gothic", "YuGothic", "Meiryo", sans-serif';
+                label.style.textShadow = [
+                    '-1px -1px 0 #fff',
+                    '1px -1px 0 #fff',
+                    '-1px 1px 0 #fff',
+                    '1px 1px 0 #fff'
+                ].join(', ');
 
                 const track = document.createElement('div');
                 track.style.width = '100%';
