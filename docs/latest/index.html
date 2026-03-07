@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>photo-emoji-3d-sticker</title>
     </head>
-    <script src="wasm_exec.js?v=1772874478"></script>
+    <script src="wasm_exec.js?v=1772874696"></script>
     <script>
     // Polyfill
     if (!WebAssembly.instantiateStreaming) {
@@ -16,7 +16,7 @@
     }
 
     const go = new Go();
-    WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772874478"), go.importObject).then(result => {
+    WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772874696"), go.importObject).then(result => {
         go.run(result.instance);
     });
     </script>
@@ -37,13 +37,23 @@
 
                 root = document.createElement('div');
                 root.style.position = 'fixed';
-                root.style.left = '16px';
-                root.style.right = '16px';
+                root.style.left = '24px';
+                root.style.right = '24px';
                 root.style.top = '50%';
                 root.style.transform = 'translateY(-50%)';
                 root.style.zIndex = '9999';
                 root.style.display = 'none';
                 root.style.pointerEvents = 'none';
+                root.style.maxWidth = '360px';
+                root.style.margin = '0 auto';
+
+                const panel = document.createElement('div');
+                panel.style.padding = '14px 16px 12px';
+                panel.style.borderRadius = '14px';
+                panel.style.background = 'rgba(255, 255, 255, 0.94)';
+                panel.style.border = '1px solid rgba(0, 0, 0, 0.08)';
+                panel.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.18)';
+                panel.style.backdropFilter = 'blur(2px)';
 
                 const label = document.createElement('div');
                 label.textContent = '保存準備中...';
@@ -53,12 +63,6 @@
                 label.style.fontSize = '14px';
                 label.style.fontWeight = '700';
                 label.style.fontFamily = '"Hiragino Maru Gothic ProN", "ヒラギノ丸ゴ ProN W4", "Yu Gothic", "YuGothic", "Meiryo", sans-serif';
-                label.style.textShadow = [
-                    '-1px -1px 0 #fff',
-                    '1px -1px 0 #fff',
-                    '-1px 1px 0 #fff',
-                    '1px 1px 0 #fff'
-                ].join(', ');
 
                 const track = document.createElement('div');
                 track.style.width = '100%';
@@ -73,9 +77,10 @@
                 bar.style.background = '#69a51f';
                 bar.style.transition = 'width 140ms linear';
 
-                root.appendChild(label);
+                panel.appendChild(label);
                 track.appendChild(bar);
-                root.appendChild(track);
+                panel.appendChild(track);
+                root.appendChild(panel);
                 document.body.appendChild(root);
             }
 
