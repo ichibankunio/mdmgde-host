@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/smtp"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -47,6 +48,12 @@ type config struct {
 	PreviewURLTpl   string
 	MaxLogLines     int
 	QueueCapacity   int
+	NotifyEmailTo   []string
+	NotifyEmailFrom string
+	NotifySMTPHost  string
+	NotifySMTPPort  int
+	NotifySMTPUser  string
+	NotifySMTPPass  string
 }
 
 type job struct {
@@ -223,6 +230,24 @@ func loadConfig() (config, error) {
 	previewTpl := strings.TrimSpace(os.Getenv("CHATOPS_PREVIEW_URL_TEMPLATE"))
 	maxLogLines := parseIntEnv("CHATOPS_MAX_LOG_LINES", 120)
 	queueCapacity := parseIntEnv("CHATOPS_QUEUE_CAPACITY", 64)
+	notifyEmailTo := parseCSVEnv("CHATOPS_NOTIFY_EMAIL_TO")
+	notifyEmailFrom := strings.TrimSpace(os.Getenv("CHATOPS_NOTIFY_EMAIL_FROM"))
+	notifySMTPHost := strings.TrimSpace(os.Getenv("CHATOPS_NOTIFY_SMTP_HOST"))
+	notifySMTPPort := parseIntEnv("CHATOPS_NOTIFY_SMTP_PORT", 587)
+	notifySMTPUser := strings.TrimSpace(os.Getenv("CHATOPS_NOTIFY_SMTP_USER"))
+	notifySMTPPass := os.Getenv("CHATOPS_NOTIFY_SMTP_PASS")
+
+	if len(notifyEmailTo) > 0 {
+		if notifyEmailFrom == "" {
+			return config{}, errors.New("CHATOPS_NOTIFY_EMAIL_FROM is required when CHATOPS_NOTIFY_EMAIL_TO is set")
+		}
+		if notifySMTPHost == "" {
+			return config{}, errors.New("CHATOPS_NOTIFY_SMTP_HOST is required when CHATOPS_NOTIFY_EMAIL_TO is set")
+		}
+		if notifySMTPUser != "" && strings.TrimSpace(notifySMTPPass) == "" {
+			return config{}, errors.New("CHATOPS_NOTIFY_SMTP_PASS is required when CHATOPS_NOTIFY_SMTP_USER is set")
+		}
+	}
 
 	projectWorkDirs, err := parseProjectWorkDirs(os.Getenv("CHATOPS_PROJECTS"))
 	if err != nil {
@@ -283,6 +308,12 @@ func loadConfig() (config, error) {
 		PreviewURLTpl:   previewTpl,
 		MaxLogLines:     maxLogLines,
 		QueueCapacity:   queueCapacity,
+		NotifyEmailTo:   notifyEmailTo,
+		NotifyEmailFrom: notifyEmailFrom,
+		NotifySMTPHost:  notifySMTPHost,
+		NotifySMTPPort:  notifySMTPPort,
+		NotifySMTPUser:  notifySMTPUser,
+		NotifySMTPPass:  notifySMTPPass,
 	}, nil
 }
 
@@ -328,6 +359,22 @@ func parseIntEnv(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+func parseCSVEnv(key string) []string {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		v := strings.TrimSpace(p)
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 func (s *server) onReady(_ *discordgo.Session, _ *discordgo.Ready) {
@@ -1287,6 +1334,10 @@ func (s *server) notifySuccess(j job, res jobResult) {
 		content = fmt.Sprintf("<@%s>\nTask completed\n\nbranch: `%s`\npreview:\n%s\n\nsummary:\n%s", j.RequestedBy, res.Branch, preview, summary)
 		s.setThreadContext(j.ChannelID, threadContext{Repo: j.Repo, Branch: res.Branch})
 		components = s.quickActionComponents(j, res)
+		if res.PreviewURL != "" {
+			body := fmt.Sprintf("Deploy completed.\n\nrepo: %s\nbranch: %s\njob: %s\npreview: %s\n\nsummary:\n%s", j.Repo, res.Branch, j.ID, res.PreviewURL, summary)
+			s.sendEmailNotification(fmt.Sprintf("[ChatOps] Deploy completed: %s (%s)", res.Branch, j.Repo), body)
+		}
 	case jobTypeImprove:
 		preview := res.PreviewURL
 		if preview == "" {
@@ -1299,12 +1350,18 @@ func (s *server) notifySuccess(j job, res jobResult) {
 		content = fmt.Sprintf("<@%s>\nImprove completed\n\nbranch: `%s`\npreview:\n%s\n\nsummary:\n%s", j.RequestedBy, res.Branch, preview, summary)
 		s.setThreadContext(j.ChannelID, threadContext{Repo: j.Repo, Branch: res.Branch})
 		components = s.quickActionComponents(j, res)
+		if res.PreviewURL != "" {
+			body := fmt.Sprintf("Deploy completed.\n\nrepo: %s\nbranch: %s\njob: %s\npreview: %s\n\nsummary:\n%s", j.Repo, res.Branch, j.ID, res.PreviewURL, summary)
+			s.sendEmailNotification(fmt.Sprintf("[ChatOps] Deploy completed: %s (%s)", res.Branch, j.Repo), body)
+		}
 	case jobTypeMerge:
 		msg := res.Message
 		if msg == "" {
 			msg = "merge completed"
 		}
 		content = fmt.Sprintf("<@%s>\nMerge completed\n\nbranch: `%s`\n%s", j.RequestedBy, j.Branch, msg)
+		body := fmt.Sprintf("Merge completed.\n\nrepo: %s\nbranch: %s\njob: %s\nmessage: %s", j.Repo, j.Branch, j.ID, msg)
+		s.sendEmailNotification(fmt.Sprintf("[ChatOps] Merge completed: %s (%s)", j.Branch, j.Repo), body)
 	case jobTypeDiscard:
 		msg := res.Message
 		if msg == "" {
@@ -1410,6 +1467,33 @@ func (s *server) notifyNeedInput(j job, res jobResult) {
 	})
 	if err != nil {
 		log.Printf("failed to send need-input message for %s: %v", j.ID, err)
+	}
+	body := fmt.Sprintf("Codex requires input before deploy.\n\nrepo: %s\nbranch: %s\njob: %s\n\nquestion:\n%s", j.Repo, fallback(res.Branch, j.Branch), j.ID, question)
+	s.sendEmailNotification(fmt.Sprintf("[ChatOps] Input required: %s (%s)", fallback(res.Branch, j.Branch), j.Repo), body)
+}
+
+func (s *server) sendEmailNotification(subject, body string) {
+	if len(s.cfg.NotifyEmailTo) == 0 {
+		return
+	}
+	addr := fmt.Sprintf("%s:%d", s.cfg.NotifySMTPHost, s.cfg.NotifySMTPPort)
+	headers := []string{
+		fmt.Sprintf("From: %s", s.cfg.NotifyEmailFrom),
+		fmt.Sprintf("To: %s", strings.Join(s.cfg.NotifyEmailTo, ", ")),
+		fmt.Sprintf("Subject: %s", subject),
+		"MIME-Version: 1.0",
+		"Content-Type: text/plain; charset=UTF-8",
+		"",
+	}
+	msg := strings.Join(headers, "\r\n") + body + "\r\n"
+
+	var auth smtp.Auth
+	if s.cfg.NotifySMTPUser != "" {
+		auth = smtp.PlainAuth("", s.cfg.NotifySMTPUser, s.cfg.NotifySMTPPass, s.cfg.NotifySMTPHost)
+	}
+
+	if err := smtp.SendMail(addr, auth, s.cfg.NotifyEmailFrom, s.cfg.NotifyEmailTo, []byte(msg)); err != nil {
+		log.Printf("failed to send email notification: %v", err)
 	}
 }
 

@@ -86,6 +86,22 @@ CHATOPS_DELETE_BRANCH=true
 CHATOPS_DISCARD_DELETE_REMOTE=true
 ```
 
+Optional email notification settings:
+
+```bash
+CHATOPS_NOTIFY_EMAIL_TO="dev1@example.com,dev2@example.com"
+CHATOPS_NOTIFY_EMAIL_FROM="chatops@example.com"
+CHATOPS_NOTIFY_SMTP_HOST="smtp.example.com"
+CHATOPS_NOTIFY_SMTP_PORT=587
+CHATOPS_NOTIFY_SMTP_USER="smtp-user"      # optional
+CHATOPS_NOTIFY_SMTP_PASS="smtp-password"  # required only when SMTP_USER is set
+```
+
+Email is sent when:
+- preview deploy is completed (`/run`, `/improve` successful with preview URL)
+- merge is completed (`/merge`)
+- Codex requests additional user input (`need_input`)
+
 `deploy_preview_to_pages.sh` copies `private/docs/*` first, and if `index.html` is missing there, it falls back to `private/web/index.html` (and `wasm_exec.js`) so each game can keep a game-specific launcher page.
 `CHATOPS_PREVIEW_SINGLE_SLOT=true` keeps only one preview directory (default `docs/latest`) and replaces its contents on each deploy.
 It also appends a cache-buster query to `game.wasm` and `wasm_exec.js` references in `index.html` on each deploy to avoid stale browser cache mismatches.
