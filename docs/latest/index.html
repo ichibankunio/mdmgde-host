@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>photo-emoji-3d-sticker</title>
     </head>
-    <script src="wasm_exec.js?v=1772881958"></script>
+    <script src="wasm_exec.js?v=1772882280"></script>
     <script>
     // Polyfill
     if (!WebAssembly.instantiateStreaming) {
@@ -150,7 +150,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772881958"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772882280"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
