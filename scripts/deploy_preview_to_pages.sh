@@ -15,6 +15,8 @@ PRIVATE_WEB_DIR="${CHATOPS_PRIVATE_WEB_DIR:-${PRIVATE_REPO_DIR}/web}"
 PUBLIC_REPO_DIR="${CHATOPS_PUBLIC_REPO_DIR:-${DEFAULT_PUBLIC_REPO_DIR}}"
 BASE_BRANCH="${CHATOPS_PUBLIC_BASE_BRANCH:-main}"
 PREVIEW_ROOT="${CHATOPS_PREVIEW_ROOT_DIR:-docs/previews}"
+PREVIEW_SINGLE_SLOT="${CHATOPS_PREVIEW_SINGLE_SLOT:-true}"
+PREVIEW_TARGET_DIR="${CHATOPS_PREVIEW_TARGET_DIR:-${PREVIEW_ROOT}/latest}"
 WAIT_PAGES="${CHATOPS_WAIT_PAGES_DEPLOY:-true}"
 PAGES_TIMEOUT_SECONDS="${CHATOPS_PAGES_TIMEOUT_SECONDS:-240}"
 PAGES_POLL_INTERVAL_SECONDS="${CHATOPS_PAGES_POLL_INTERVAL_SECONDS:-5}"
@@ -34,7 +36,12 @@ if [[ -z "${slug}" ]]; then
   exit 1
 fi
 
-TARGET_DIR="${PUBLIC_REPO_DIR}/${PREVIEW_ROOT}/${slug}"
+target_rel="${PREVIEW_ROOT}/${slug}"
+url_branch_slug="${slug}"
+if [[ "${PREVIEW_SINGLE_SLOT}" == "true" ]]; then
+  target_rel="${PREVIEW_TARGET_DIR}"
+  url_branch_slug="$(basename "${PREVIEW_TARGET_DIR}")"
+fi
 # Use a temporary clean worktree so deployment works even if PUBLIC_REPO_DIR is dirty.
 WORKTREE_DIR="$(mktemp -d)"
 cleanup() {
@@ -47,7 +54,13 @@ git -C "${PUBLIC_REPO_DIR}" fetch origin "${BASE_BRANCH}" >/dev/null 2>&1
 git -C "${PUBLIC_REPO_DIR}" worktree add --detach "${WORKTREE_DIR}" "origin/${BASE_BRANCH}" >/dev/null 2>&1
 
 cd "${WORKTREE_DIR}"
-TARGET_DIR="${WORKTREE_DIR}/${PREVIEW_ROOT}/${slug}"
+preview_root_abs="${WORKTREE_DIR}/${PREVIEW_ROOT}"
+TARGET_DIR="${WORKTREE_DIR}/${target_rel}"
+mkdir -p "${preview_root_abs}"
+if [[ "${PREVIEW_SINGLE_SLOT}" == "true" ]]; then
+  target_base="$(basename "${target_rel}")"
+  find "${preview_root_abs}" -mindepth 1 -maxdepth 1 ! -name "${target_base}" -exec rm -rf {} +
+fi
 mkdir -p "${TARGET_DIR}"
 # Replace preview directory contents for this branch.
 find "${TARGET_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
@@ -67,7 +80,8 @@ if [[ ! -f "${TARGET_DIR}/wasm_exec.js" && -f "${PRIVATE_WEB_DIR}/wasm_exec.js" 
   cp "${PRIVATE_WEB_DIR}/wasm_exec.js" "${TARGET_DIR}/wasm_exec.js"
 fi
 
-git add -f "${PREVIEW_ROOT}/${slug}"
+git add -A "${PREVIEW_ROOT}"
+git add -f "${target_rel}"
 target_sha=""
 if git diff --cached --quiet; then
   target_sha="$(git rev-parse "origin/${BASE_BRANCH}")"
@@ -125,7 +139,7 @@ if [[ "${WAIT_PAGES}" == "true" ]]; then
 fi
 
 build_default_url() {
-  local owner_repo remote owner repo
+  local owner_repo remote owner repo public_path
   if command -v gh >/dev/null 2>&1; then
     owner_repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null || true)"
   fi
@@ -135,13 +149,15 @@ build_default_url() {
   fi
   owner="${owner_repo%%/*}"
   repo="${owner_repo##*/}"
-  printf 'https://%s.github.io/%s/previews/%s/' "${owner}" "${repo}" "${slug}"
+  public_path="${target_rel#docs/}"
+  printf 'https://%s.github.io/%s/%s/' "${owner}" "${repo}" "${public_path}"
 }
 
 if [[ -n "${CHATOPS_PREVIEW_URL_TEMPLATE:-}" ]]; then
   url="${CHATOPS_PREVIEW_URL_TEMPLATE}"
   url="${url//\{branch\}/${BRANCH}}"
-  url="${url//\{branch_slug\}/${slug}}"
+  url="${url//\{branch_slug\}/${url_branch_slug}}"
+  url="${url//\{preview_path\}/${target_rel#docs/}}"
   printf '%s\n' "${url}"
 else
   build_default_url

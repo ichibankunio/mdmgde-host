@@ -77,12 +77,15 @@ Recommended preview settings:
 CHATOPS_PREVIEW_CMD="/Users/ichibankunio/go/src/github.com/ichibankunio/mdmgde-host/scripts/deploy_preview_to_pages.sh"
 CHATOPS_PUBLIC_REPO_DIR="/Users/ichibankunio/go/src/github.com/ichibankunio/mdmgde-host"
 CHATOPS_PRIVATE_WEB_DIR="/abs/path/to/private-repo/web"
-CHATOPS_PREVIEW_URL_TEMPLATE="https://ichibankunio.github.io/mdmgde-host/previews/{branch_slug}/"
+CHATOPS_PREVIEW_SINGLE_SLOT=true
+CHATOPS_PREVIEW_TARGET_DIR="docs/previews/latest"
+CHATOPS_PREVIEW_URL_TEMPLATE="https://ichibankunio.github.io/mdmgde-host/previews/latest/"
 CHATOPS_WAIT_PAGES_DEPLOY=true
 CHATOPS_PAGES_TIMEOUT_SECONDS=240
 ```
 
 `deploy_preview_to_pages.sh` copies `private/docs/*` first, and if `index.html` is missing there, it falls back to `private/web/index.html` (and `wasm_exec.js`) so each game can keep a game-specific launcher page.
+`CHATOPS_PREVIEW_SINGLE_SLOT=true` keeps only one preview directory (default `docs/previews/latest`) and deletes older `docs/previews/*` entries on each deploy.
 
 Legacy single-project config (`CHATOPS_WORKDIR` + `CHATOPS_ALLOWED_REPOS`) is still supported.
 
