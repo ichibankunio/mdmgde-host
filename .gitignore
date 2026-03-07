@@ -1,0 +1,4 @@
+.DS_Store
+docs/
+.codex-worker/
+scripts/discord_worker.env
