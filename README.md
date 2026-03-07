@@ -23,6 +23,31 @@ gh auth login
 codex login
 ```
 
+## Setup
+
+### 1. GitHub repository settings
+
+- `Settings > Pages`
+  - `Build and deployment`: `GitHub Actions`
+- `Settings > Actions > General`
+  - `Workflow permissions`: `Read and write permissions`
+
+### 2. Discord bot settings
+
+- Bot OAuth scopes: `bot`, `applications.commands`
+- Bot permissions (minimum):
+  - `View Channels`
+  - `Send Messages`
+  - `Read Message History`
+  - `Use Slash Commands`
+- For thread-based workflow:
+  - `Create Public Threads`
+  - `Send Messages in Threads`
+- Developer Portal > Bot > Privileged Gateway Intents:
+  - Enable `Message Content Intent`
+
+### 3. Create env file
+
 ## Configure
 
 ```bash
@@ -46,13 +71,28 @@ CHATOPS_PROJECTS='{"owner/game-a":"/repos/game-a","owner/game-b":"/repos/game-b"
 CHATOPS_PROJECTS="owner/game-a=/repos/game-a,owner/game-b=/repos/game-b"
 ```
 
+Recommended preview settings:
+
+```bash
+CHATOPS_PREVIEW_CMD="/Users/ichibankunio/go/src/github.com/ichibankunio/mdmgde-host/scripts/deploy_preview_to_pages.sh"
+CHATOPS_PUBLIC_REPO_DIR="/Users/ichibankunio/go/src/github.com/ichibankunio/mdmgde-host"
+CHATOPS_PREVIEW_URL_TEMPLATE="https://ichibankunio.github.io/mdmgde-host/previews/{branch_slug}/"
+```
+
 Legacy single-project config (`CHATOPS_WORKDIR` + `CHATOPS_ALLOWED_REPOS`) is still supported.
 
-## Start Worker
+### 4. Start worker
 
 ```bash
 ./scripts/start_discord_worker.sh
 ```
+
+### 5. Smoke test
+
+1. Run `/start` in Discord.
+2. Run `/run` and complete one task.
+3. Confirm preview URL is returned.
+4. Confirm Pages workflow (`Deploy Hosted Previews to GitHub Pages`) succeeds.
 
 ## Main Commands
 
