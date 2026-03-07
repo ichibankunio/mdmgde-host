@@ -46,7 +46,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772893752"></script>
+    <script src="wasm_exec.js?v=1772894057"></script>
     <script type="module">
     import data from "https://cdn.jsdelivr.net/npm/@emoji-mart/data@1.2.1/+esm";
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
@@ -288,7 +288,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772893752"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772894057"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
