@@ -82,6 +82,8 @@ CHATOPS_PREVIEW_TARGET_DIR="docs/latest"
 CHATOPS_PREVIEW_URL_TEMPLATE="https://ichibankunio.github.io/mdmgde-host/"
 CHATOPS_WAIT_PAGES_DEPLOY=true
 CHATOPS_PAGES_TIMEOUT_SECONDS=240
+CHATOPS_DELETE_BRANCH=true
+CHATOPS_DISCARD_DELETE_REMOTE=true
 ```
 
 `deploy_preview_to_pages.sh` copies `private/docs/*` first, and if `index.html` is missing there, it falls back to `private/web/index.html` (and `wasm_exec.js`) so each game can keep a game-specific launcher page.

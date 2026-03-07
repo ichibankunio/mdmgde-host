@@ -66,8 +66,15 @@ if ! git push origin "${BASE_BRANCH}" >>"${LOG_FILE}" 2>&1; then
   exit 1
 fi
 
-if [[ "${CHATOPS_DELETE_BRANCH:-false}" == "true" ]]; then
-  git push origin --delete "${BRANCH}" >>"${LOG_FILE}" 2>&1 || true
+DELETE_BRANCH="${CHATOPS_DELETE_BRANCH:-true}"
+
+if [[ "${DELETE_BRANCH}" == "true" ]]; then
+  if git show-ref --verify --quiet "refs/heads/${BRANCH}"; then
+    git branch -D "${BRANCH}" >>"${LOG_FILE}" 2>&1 || true
+  fi
+  if git ls-remote --exit-code --heads origin "${BRANCH}" >/dev/null 2>&1; then
+    git push origin --delete "${BRANCH}" >>"${LOG_FILE}" 2>&1 || true
+  fi
 fi
 
 commit="$(git rev-parse --short HEAD)"
