@@ -72,17 +72,19 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772913253"></script>
+    <script src="wasm_exec.js?v=1772913652"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
     const TWEMOJI_DATA_URL = "https://cdn.jsdelivr.net/npm/@emoji-mart/data@1.2.1/sets/14/twitter.json";
+    const EMOJIBASE_JA_DATA_URL = "https://cdn.jsdelivr.net/npm/emojibase-data@16.0.0/ja/data.json";
 
     const EMOJI_MART_BASE_WIDTH = 352;
     const EMOJI_MART_BASE_HEIGHT = 435;
     let emojiMartRoot = null;
     let emojiMartHost = null;
     let emojiMartDataPromise = null;
+    let emojiBaseJaDataPromise = null;
 
     function loadEmojiMartData() {
         if (!emojiMartDataPromise) {
@@ -94,6 +96,97 @@
             });
         }
         return emojiMartDataPromise;
+    }
+
+    function loadEmojiBaseJaData() {
+        if (!emojiBaseJaDataPromise) {
+            emojiBaseJaDataPromise = fetch(EMOJIBASE_JA_DATA_URL).then((res) => {
+                if (!res.ok) {
+                    throw new Error("failed to load emojibase ja data: " + res.status);
+                }
+                return res.json();
+            }).catch((err) => {
+                console.warn(err);
+                return null;
+            });
+        }
+        return emojiBaseJaDataPromise;
+    }
+
+    function normalizeEmojiKey(emoji) {
+        if (typeof emoji !== "string") {
+            return "";
+        }
+        return emoji.replace(/\uFE0F/g, "").trim();
+    }
+
+    function buildJaKeywordMap(entries) {
+        const map = new Map();
+        if (!Array.isArray(entries)) {
+            return map;
+        }
+        entries.forEach((entry) => {
+            if (!entry || typeof entry !== "object") {
+                return;
+            }
+            const key = normalizeEmojiKey(entry.emoji);
+            if (!key) {
+                return;
+            }
+            const terms = [];
+            if (typeof entry.annotation === "string" && entry.annotation.trim() !== "") {
+                terms.push(entry.annotation.trim());
+            }
+            if (Array.isArray(entry.tags)) {
+                entry.tags.forEach((tag) => {
+                    if (typeof tag === "string" && tag.trim() !== "") {
+                        terms.push(tag.trim());
+                    }
+                });
+            }
+            if (terms.length === 0) {
+                return;
+            }
+            const termSet = map.get(key) || new Set();
+            terms.forEach((term) => termSet.add(term));
+            map.set(key, termSet);
+        });
+        return map;
+    }
+
+    function enrichEmojiMartDataWithJapaneseKeywords(data, jaEntries) {
+        if (!data || typeof data !== "object") {
+            return data;
+        }
+        const emojiMap = data.emojis;
+        if (!emojiMap || typeof emojiMap !== "object") {
+            return data;
+        }
+        const jaKeywordMap = buildJaKeywordMap(jaEntries);
+        if (jaKeywordMap.size === 0) {
+            return data;
+        }
+        Object.values(emojiMap).forEach((entry) => {
+            if (!entry || typeof entry !== "object") {
+                return;
+            }
+            const nativeEmoji = normalizeEmojiKey(
+                entry.emoji ||
+                (Array.isArray(entry.skins) && entry.skins.length > 0 && entry.skins[0] && entry.skins[0].native)
+            );
+            if (!nativeEmoji) {
+                return;
+            }
+            const jaTerms = jaKeywordMap.get(nativeEmoji);
+            if (!jaTerms || jaTerms.size === 0) {
+                return;
+            }
+            const existing = Array.isArray(entry.keywords) ? entry.keywords : [];
+            const merged = new Set(existing);
+            jaTerms.forEach((term) => merged.add(term));
+            entry.keywords = Array.from(merged);
+        });
+        return data;
     }
 
     function hardenPickerInputs(picker) {
@@ -123,7 +216,8 @@
         if (emojiMartRoot) {
             return;
         }
-        const data = await loadEmojiMartData();
+        const [data, jaEntries] = await Promise.all([loadEmojiMartData(), loadEmojiBaseJaData()]);
+        enrichEmojiMartDataWithJapaneseKeywords(data, jaEntries);
         emojiMartRoot = document.createElement("div");
         emojiMartRoot.style.position = "fixed";
         emojiMartRoot.style.display = "none";
@@ -598,7 +692,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772913253"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772913652"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
