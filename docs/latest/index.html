@@ -22,7 +22,33 @@
         <script>
         // iOS Safari: block pinch and double-tap zoom.
         (function disableIOSZoom() {
+            const isInEmojiMart = (event) => {
+                const root = window.__emojiMartRoot;
+                if (!root || !event) {
+                    return false;
+                }
+                const path = typeof event.composedPath === "function" ? event.composedPath() : null;
+                if (path && path.length > 0) {
+                    for (const node of path) {
+                        if (node === root) {
+                            return true;
+                        }
+                        if (node instanceof Element && root.contains(node)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                const target = event.target;
+                return target instanceof Element && root.contains(target);
+            };
             const prevent = (event) => event.preventDefault();
+            const preventOutsideEmojiMart = (event) => {
+                if (isInEmojiMart(event)) {
+                    return;
+                }
+                event.preventDefault();
+            };
             document.addEventListener("gesturestart", prevent, { passive: false });
             document.addEventListener("gesturechange", prevent, { passive: false });
             document.addEventListener("gestureend", prevent, { passive: false });
@@ -40,13 +66,13 @@
                 lastTouchEnd = now;
             }, { passive: false });
             // Keep page fixed even when browser tries to pan/scroll while interacting with controls.
-            document.addEventListener("touchmove", prevent, { passive: false });
-            document.addEventListener("wheel", prevent, { passive: false });
+            document.addEventListener("touchmove", preventOutsideEmojiMart, { passive: false });
+            document.addEventListener("wheel", preventOutsideEmojiMart, { passive: false });
             document.addEventListener("scroll", () => window.scrollTo(0, 0), { passive: true });
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772897143"></script>
+    <script src="wasm_exec.js?v=1772913253"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -106,6 +132,8 @@
         emojiMartRoot.style.borderRadius = "14px";
         emojiMartRoot.style.boxShadow = "0 12px 32px rgba(0, 0, 0, 0.28)";
         emojiMartRoot.style.background = "#fff";
+        emojiMartRoot.style.touchAction = "pan-y";
+        window.__emojiMartRoot = emojiMartRoot;
 
         emojiMartHost = document.createElement("div");
         emojiMartHost.style.width = EMOJI_MART_BASE_WIDTH + "px";
@@ -570,7 +598,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772897143"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772913253"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
