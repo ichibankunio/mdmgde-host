@@ -46,15 +46,29 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772894057"></script>
+    <script src="wasm_exec.js?v=1772894322"></script>
     <script type="module">
-    import data from "https://cdn.jsdelivr.net/npm/@emoji-mart/data@1.2.1/+esm";
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
+    
+    const TWEMOJI_DATA_URL = "https://cdn.jsdelivr.net/npm/@emoji-mart/data@1.2.1/sets/14/twitter.json";
 
     const EMOJI_MART_BASE_WIDTH = 352;
     const EMOJI_MART_BASE_HEIGHT = 435;
     let emojiMartRoot = null;
     let emojiMartHost = null;
+    let emojiMartDataPromise = null;
+
+    function loadEmojiMartData() {
+        if (!emojiMartDataPromise) {
+            emojiMartDataPromise = fetch(TWEMOJI_DATA_URL).then((res) => {
+                if (!res.ok) {
+                    throw new Error("failed to load twemoji data: " + res.status);
+                }
+                return res.json();
+            });
+        }
+        return emojiMartDataPromise;
+    }
 
     function hardenPickerInputs(picker) {
         if (!picker || !picker.shadowRoot) {
@@ -79,10 +93,11 @@
         shadow.addEventListener("focusin", ensureInputStyle, true);
     }
 
-    function ensureEmojiMart() {
+    async function ensureEmojiMart() {
         if (emojiMartRoot) {
             return;
         }
+        const data = await loadEmojiMartData();
         emojiMartRoot = document.createElement("div");
         emojiMartRoot.style.position = "fixed";
         emojiMartRoot.style.display = "none";
@@ -100,9 +115,9 @@
 
         const picker = new Picker({
             data,
+            set: "twitter",
             locale: "ja",
             theme: "light",
-            set: "twitter",
             previewPosition: "none",
             skinTonePosition: "none",
             perLine: 7,
@@ -122,8 +137,8 @@
     }
 
     window.__emojiMartSelected = "";
-    window.syncEmojiMartPicker = (opts = {}) => {
-        ensureEmojiMart();
+    window.syncEmojiMartPicker = async (opts = {}) => {
+        await ensureEmojiMart();
         const open = !!opts.open;
         if (!open) {
             emojiMartRoot.style.display = "none";
@@ -288,7 +303,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772894057"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772894322"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
