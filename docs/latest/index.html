@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772913652"></script>
+    <script src="wasm_exec.js?v=1772914018"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -120,6 +120,38 @@
         return emoji.replace(/\uFE0F/g, "").trim();
     }
 
+    function katakanaToHiragana(text) {
+        if (typeof text !== "string" || text === "") {
+            return "";
+        }
+        return text.replace(/[\u30A1-\u30F6]/g, (ch) =>
+            String.fromCharCode(ch.charCodeAt(0) - 0x60)
+        );
+    }
+
+    function hiraganaToKatakana(text) {
+        if (typeof text !== "string" || text === "") {
+            return "";
+        }
+        return text.replace(/[\u3041-\u3096]/g, (ch) =>
+            String.fromCharCode(ch.charCodeAt(0) + 0x60)
+        );
+    }
+
+    function expandKanaVariants(term) {
+        if (typeof term !== "string") {
+            return [];
+        }
+        const base = term.trim();
+        if (base === "") {
+            return [];
+        }
+        const set = new Set([base]);
+        set.add(katakanaToHiragana(base));
+        set.add(hiraganaToKatakana(base));
+        return Array.from(set).filter((v) => v !== "");
+    }
+
     function buildJaKeywordMap(entries) {
         const map = new Map();
         if (!Array.isArray(entries)) {
@@ -148,7 +180,9 @@
                 return;
             }
             const termSet = map.get(key) || new Set();
-            terms.forEach((term) => termSet.add(term));
+            terms.forEach((term) => {
+                expandKanaVariants(term).forEach((variant) => termSet.add(variant));
+            });
             map.set(key, termSet);
         });
         return map;
@@ -692,7 +726,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772913652"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772914018"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
