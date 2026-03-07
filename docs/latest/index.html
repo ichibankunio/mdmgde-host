@@ -46,7 +46,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772896665"></script>
+    <script src="wasm_exec.js?v=1772897143"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -168,250 +168,6 @@
         };
     }
 
-    const onboardingOverlay = (() => {
-        const pages = [
-            {
-                title: "写真に絵文字を貼るアプリ",
-                body: "スマホの写真に絵文字ステッカーを重ねて、すぐに保存・共有できます。"
-            },
-            {
-                title: "使い方は3ステップ",
-                body: "1. 画像を選択\n2. 右上ボタンで絵文字を追加\n3. ドラッグや拡大で位置調整"
-            },
-            {
-                title: "編集のコツ",
-                body: "絵文字をタップすると選択状態になります。角のハンドルでサイズ変更、左上のボタンで直前の絵文字を取り消せます。"
-            }
-        ];
-
-        let root = null;
-        let panel = null;
-        let viewport = null;
-        let track = null;
-        let dots = null;
-        let cta = null;
-        let slideNodes = [];
-        let dotNodes = [];
-        let pageIndex = 0;
-        let dragging = false;
-        let dragStartX = 0;
-        let dragOffsetX = 0;
-
-        function ensure() {
-            if (root) {
-                return;
-            }
-
-            root = document.createElement("div");
-            root.style.position = "fixed";
-            root.style.zIndex = "10001";
-            root.style.display = "none";
-            root.style.pointerEvents = "none";
-
-            panel = document.createElement("div");
-            panel.style.width = "100%";
-            panel.style.height = "100%";
-            panel.style.background = "linear-gradient(180deg, rgba(11, 27, 43, 0.90) 0%, rgba(4, 11, 20, 0.82) 100%)";
-            panel.style.backdropFilter = "blur(2px)";
-            panel.style.borderRadius = "0";
-            panel.style.display = "flex";
-            panel.style.flexDirection = "column";
-            panel.style.justifyContent = "center";
-            panel.style.alignItems = "center";
-            panel.style.gap = "14px";
-            panel.style.padding = "18px 14px";
-            panel.style.boxSizing = "border-box";
-            panel.style.pointerEvents = "auto";
-
-            viewport = document.createElement("div");
-            viewport.style.width = "100%";
-            viewport.style.maxWidth = "560px";
-            viewport.style.overflow = "hidden";
-            viewport.style.touchAction = "pan-y";
-
-            track = document.createElement("div");
-            track.style.display = "flex";
-            track.style.willChange = "transform";
-            viewport.appendChild(track);
-
-            slideNodes = pages.map((page) => {
-                const slide = document.createElement("section");
-                slide.style.flex = "0 0 100%";
-                slide.style.boxSizing = "border-box";
-                slide.style.padding = "6px 10px";
-                slide.style.color = "#f6fbff";
-
-                const card = document.createElement("div");
-                card.style.background = "rgba(255, 255, 255, 0.10)";
-                card.style.border = "1px solid rgba(255, 255, 255, 0.22)";
-                card.style.borderRadius = "16px";
-                card.style.padding = "20px 18px";
-                card.style.boxShadow = "0 10px 28px rgba(0, 0, 0, 0.22)";
-
-                const title = document.createElement("h2");
-                title.textContent = page.title;
-                title.style.margin = "0 0 10px";
-                title.style.fontSize = "clamp(20px, 5.2vw, 30px)";
-                title.style.fontWeight = "800";
-                title.style.letterSpacing = "0.01em";
-
-                const body = document.createElement("p");
-                body.textContent = page.body;
-                body.style.margin = "0";
-                body.style.fontSize = "clamp(14px, 3.8vw, 19px)";
-                body.style.lineHeight = "1.65";
-                body.style.whiteSpace = "pre-line";
-                body.style.opacity = "0.96";
-
-                card.appendChild(title);
-                card.appendChild(body);
-                slide.appendChild(card);
-                track.appendChild(slide);
-                return slide;
-            });
-
-            dots = document.createElement("div");
-            dots.style.display = "flex";
-            dots.style.justifyContent = "center";
-            dots.style.alignItems = "center";
-            dots.style.gap = "8px";
-            dotNodes = pages.map((_, index) => {
-                const dot = document.createElement("button");
-                dot.type = "button";
-                dot.setAttribute("aria-label", "onboarding page " + (index + 1));
-                dot.style.width = "9px";
-                dot.style.height = "9px";
-                dot.style.border = "0";
-                dot.style.borderRadius = "999px";
-                dot.style.padding = "0";
-                dot.style.background = "rgba(255, 255, 255, 0.36)";
-                dot.style.cursor = "pointer";
-                dot.style.transition = "all 160ms ease";
-                dot.addEventListener("click", () => {
-                    pageIndex = index;
-                    dragOffsetX = 0;
-                    update(true);
-                });
-                dots.appendChild(dot);
-                return dot;
-            });
-
-            cta = document.createElement("button");
-            cta.type = "button";
-            cta.textContent = "画像を選択してはじめる";
-            cta.style.height = "44px";
-            cta.style.padding = "0 18px";
-            cta.style.border = "0";
-            cta.style.borderRadius = "999px";
-            cta.style.background = "#e4ff4f";
-            cta.style.color = "#123";
-            cta.style.fontWeight = "800";
-            cta.style.fontSize = "14px";
-            cta.style.letterSpacing = "0.03em";
-            cta.style.cursor = "pointer";
-            cta.addEventListener("click", () => {
-                if (typeof window.openImagePicker === "function") {
-                    window.openImagePicker();
-                }
-            });
-
-            panel.appendChild(viewport);
-            panel.appendChild(dots);
-            panel.appendChild(cta);
-            root.appendChild(panel);
-            (document.body || document.documentElement).appendChild(root);
-
-            const onTouchStart = (event) => {
-                const touch = event.touches && event.touches[0];
-                if (!touch) {
-                    return;
-                }
-                dragging = true;
-                dragStartX = touch.clientX;
-                dragOffsetX = 0;
-                update(false);
-            };
-            const onTouchMove = (event) => {
-                if (!dragging) {
-                    return;
-                }
-                const touch = event.touches && event.touches[0];
-                if (!touch) {
-                    return;
-                }
-                dragOffsetX = touch.clientX - dragStartX;
-                update(false);
-            };
-            const onTouchEnd = () => {
-                if (!dragging) {
-                    return;
-                }
-                dragging = false;
-                const threshold = Math.max(36, (viewport.clientWidth || 320) * 0.16);
-                if (dragOffsetX <= -threshold && pageIndex < pages.length - 1) {
-                    pageIndex++;
-                } else if (dragOffsetX >= threshold && pageIndex > 0) {
-                    pageIndex--;
-                }
-                dragOffsetX = 0;
-                update(true);
-            };
-
-            viewport.addEventListener("touchstart", onTouchStart, { passive: true });
-            viewport.addEventListener("touchmove", onTouchMove, { passive: true });
-            viewport.addEventListener("touchend", onTouchEnd, { passive: true });
-            viewport.addEventListener("touchcancel", onTouchEnd, { passive: true });
-            window.addEventListener("resize", () => update(false));
-            update(false);
-        }
-
-        function update(animated) {
-            if (!track || !viewport) {
-                return;
-            }
-            const pageWidth = Math.max(1, viewport.clientWidth || 1);
-            const leftLimit = -(pages.length - 1 - pageIndex) * pageWidth;
-            const rightLimit = pageIndex * pageWidth;
-            const cappedOffset = Math.min(rightLimit, Math.max(leftLimit, dragOffsetX));
-            const x = -pageIndex * pageWidth + cappedOffset;
-            track.style.transition = animated ? "transform 220ms ease" : "none";
-            track.style.transform = "translate3d(" + x + "px, 0, 0)";
-
-            dotNodes.forEach((dot, index) => {
-                const active = index === pageIndex;
-                dot.style.width = active ? "24px" : "9px";
-                dot.style.background = active ? "#e4ff4f" : "rgba(255, 255, 255, 0.36)";
-            });
-            cta.style.display = pageIndex === pages.length - 1 ? "inline-flex" : "none";
-        }
-
-        function sync(opts = {}) {
-            ensure();
-            const visible = !!opts.visible;
-            if (!visible) {
-                root.style.display = "none";
-                return;
-            }
-
-            const left = Number(opts.left || 0);
-            const top = Number(opts.top || 0);
-            const width = Math.max(1, Number(opts.width || window.innerWidth || 1));
-            const height = Math.max(1, Number(opts.height || window.innerHeight || 1));
-            root.style.display = "block";
-            root.style.left = left + "px";
-            root.style.top = top + "px";
-            root.style.width = width + "px";
-            root.style.height = height + "px";
-            update(false);
-        }
-
-        return { sync };
-    })();
-
-    window.syncOnboardingOverlay = (opts = {}) => {
-        onboardingOverlay.sync(opts);
-    };
-
     const bootProgressBar = (() => {
         let root = null;
         let bar = null;
@@ -516,6 +272,273 @@
         return { show, set, hide };
     })();
 
+    const onboardingOverlay = (() => {
+        const slides = [
+            {
+                title: "Photo Emoji 3D Sticker へようこそ",
+                body: "写真を1枚選ぶだけで、3D風の絵文字ステッカーを重ねた画像を作れます。"
+            },
+            {
+                title: "操作はシンプル",
+                body: "右上のボタンで絵文字を追加。ドラッグで移動、ピンチで拡大縮小、回転ハンドルで角度調整できます。"
+            },
+            {
+                title: "仕上げて保存",
+                body: "配置が決まったら「画像を保存」で共有や保存ができます。まずは画像を選択して始めましょう。"
+            }
+        ];
+        let root = null;
+        let panel = null;
+        let viewport = null;
+        let track = null;
+        let dots = [];
+        let activeIndex = 0;
+        let mounted = false;
+        let dragStartX = 0;
+        let dragDeltaX = 0;
+        let dragging = false;
+
+        function updateTrack(animate) {
+            if (!track || !viewport) {
+                return;
+            }
+            const width = viewport.clientWidth || 1;
+            const x = -activeIndex * width + dragDeltaX;
+            track.style.transition = animate ? "transform 200ms ease" : "none";
+            track.style.transform = "translateX(" + x + "px)";
+        }
+
+        function setActive(index, animate = true) {
+            activeIndex = Math.max(0, Math.min(slides.length - 1, index));
+            dots.forEach((dot, i) => {
+                dot.style.background = i === activeIndex ? "#4f4f4f" : "#d4d4d4";
+                dot.style.transform = i === activeIndex ? "scale(1.1)" : "scale(1)";
+            });
+            updateTrack(animate);
+        }
+
+        function eventX(event) {
+            if (event.touches && event.touches.length > 0) {
+                return event.touches[0].clientX;
+            }
+            if (event.changedTouches && event.changedTouches.length > 0) {
+                return event.changedTouches[0].clientX;
+            }
+            return 0;
+        }
+
+        function ensure() {
+            if (root) {
+                return;
+            }
+            root = document.createElement("div");
+            root.style.position = "fixed";
+            root.style.inset = "0";
+            root.style.display = "none";
+            root.style.zIndex = "10001";
+            root.style.pointerEvents = "none";
+
+            panel = document.createElement("div");
+            panel.style.position = "absolute";
+            panel.style.width = "min(88vw, 420px)";
+            panel.style.background = "rgba(255, 255, 255, 0.95)";
+            panel.style.borderRadius = "20px";
+            panel.style.border = "1px solid rgba(0, 0, 0, 0.08)";
+            panel.style.boxShadow = "0 14px 40px rgba(0, 0, 0, 0.14)";
+            panel.style.backdropFilter = "blur(2px)";
+            panel.style.overflow = "hidden";
+            panel.style.pointerEvents = "auto";
+            panel.style.fontFamily = '"Hiragino Maru Gothic ProN", "ヒラギノ丸ゴ ProN W4", "Yu Gothic", "YuGothic", "Meiryo", sans-serif';
+
+            viewport = document.createElement("div");
+            viewport.style.overflow = "hidden";
+            viewport.style.touchAction = "pan-x";
+            viewport.style.padding = "24px 0 0";
+            viewport.style.boxSizing = "border-box";
+            viewport.style.whiteSpace = "normal";
+            viewport.style.height = "220px";
+            viewport.style.overscrollBehaviorX = "contain";
+            viewport.style.overscrollBehaviorY = "contain";
+            viewport.addEventListener("touchstart", (event) => {
+                if (!event.touches || event.touches.length !== 1) {
+                    return;
+                }
+                event.stopPropagation();
+                dragging = true;
+                dragStartX = eventX(event);
+                dragDeltaX = 0;
+                updateTrack(false);
+            }, { passive: true });
+            viewport.addEventListener("touchmove", (event) => {
+                if (!dragging) {
+                    return;
+                }
+                event.stopPropagation();
+                dragDeltaX = eventX(event) - dragStartX;
+                updateTrack(false);
+            }, { passive: true });
+            viewport.addEventListener("touchend", (event) => {
+                if (!dragging) {
+                    return;
+                }
+                event.stopPropagation();
+                const delta = eventX(event) - dragStartX;
+                dragging = false;
+                dragDeltaX = 0;
+                if (Math.abs(delta) > 40) {
+                    const next = delta < 0 ? activeIndex + 1 : activeIndex - 1;
+                    setActive(next, true);
+                    return;
+                }
+                setActive(activeIndex, true);
+            }, { passive: true });
+            viewport.addEventListener("touchcancel", () => {
+                dragging = false;
+                dragDeltaX = 0;
+                setActive(activeIndex, true);
+            }, { passive: true });
+            viewport.addEventListener("wheel", (event) => event.stopPropagation(), { passive: true });
+
+            track = document.createElement("div");
+            track.style.display = "flex";
+            track.style.width = "100%";
+            track.style.height = "100%";
+            track.style.willChange = "transform";
+
+            slides.forEach((slide) => {
+                const item = document.createElement("section");
+                item.style.flex = "0 0 100%";
+                item.style.boxSizing = "border-box";
+                item.style.padding = "0 22px";
+
+                const title = document.createElement("h2");
+                title.textContent = slide.title;
+                title.style.margin = "0 0 12px";
+                title.style.fontSize = "20px";
+                title.style.lineHeight = "1.35";
+                title.style.fontWeight = "700";
+                title.style.color = "#1f1f1f";
+
+                const body = document.createElement("p");
+                body.textContent = slide.body;
+                body.style.margin = "0";
+                body.style.fontSize = "14px";
+                body.style.lineHeight = "1.8";
+                body.style.color = "#4a4a4a";
+
+                item.appendChild(title);
+                item.appendChild(body);
+                track.appendChild(item);
+            });
+            viewport.appendChild(track);
+
+            const footer = document.createElement("div");
+            footer.style.display = "flex";
+            footer.style.alignItems = "center";
+            footer.style.justifyContent = "space-between";
+            footer.style.padding = "12px 20px 16px";
+
+            const dotsRow = document.createElement("div");
+            dotsRow.style.display = "flex";
+            dotsRow.style.gap = "8px";
+            slides.forEach((_, i) => {
+                const dot = document.createElement("button");
+                dot.type = "button";
+                dot.setAttribute("aria-label", "slide " + (i + 1));
+                dot.style.width = "8px";
+                dot.style.height = "8px";
+                dot.style.borderRadius = "999px";
+                dot.style.border = "none";
+                dot.style.padding = "0";
+                dot.style.cursor = "pointer";
+                dot.style.background = "#d4d4d4";
+                dot.style.transition = "transform 120ms ease, background-color 120ms ease";
+                dot.addEventListener("click", () => {
+                    setActive(i);
+                });
+                dots.push(dot);
+                dotsRow.appendChild(dot);
+            });
+
+            const action = document.createElement("button");
+            action.type = "button";
+            action.textContent = "画像を選択";
+            action.style.height = "36px";
+            action.style.padding = "0 14px";
+            action.style.borderRadius = "999px";
+            action.style.border = "none";
+            action.style.background = "#545454";
+            action.style.color = "#fff";
+            action.style.fontSize = "13px";
+            action.style.fontWeight = "700";
+            action.style.cursor = "pointer";
+            action.addEventListener("click", () => {
+                const trigger = window.triggerSelectImageFromOnboarding;
+                if (typeof trigger === "function") {
+                    trigger();
+                }
+            });
+
+            footer.appendChild(dotsRow);
+            footer.appendChild(action);
+            panel.appendChild(viewport);
+            panel.appendChild(footer);
+            root.appendChild(panel);
+            setActive(0);
+            window.addEventListener("resize", () => updateTrack(false));
+        }
+
+        function mount() {
+            if (mounted) {
+                return;
+            }
+            const parent = document.body || document.documentElement;
+            if (!parent) {
+                return;
+            }
+            parent.appendChild(root);
+            mounted = true;
+        }
+
+        function hide() {
+            if (!root) {
+                return;
+            }
+            root.style.display = "none";
+        }
+
+        function show(opts = {}) {
+            ensure();
+            mount();
+            root.style.display = "block";
+
+            const left = Number(opts.left || 0);
+            const top = Number(opts.top || 0);
+            const width = Math.max(0, Number(opts.width || window.innerWidth));
+            const height = Math.max(0, Number(opts.height || window.innerHeight));
+            const panelWidth = Math.max(280, Math.min(width - 24, 420));
+            const panelLeft = left + (width - panelWidth) / 2;
+            const panelTop = top + Math.max(18, Math.min(32, height * 0.04));
+            const maxPanelHeight = Math.max(180, height - 130);
+
+            panel.style.width = panelWidth + "px";
+            panel.style.left = panelLeft + "px";
+            panel.style.top = panelTop + "px";
+            panel.style.maxHeight = maxPanelHeight + "px";
+        }
+
+        function sync(opts = {}) {
+            if (opts.show) {
+                show(opts);
+                return;
+            }
+            hide();
+        }
+
+        return { sync };
+    })();
+    window.syncOnboardingOverlay = (opts = {}) => onboardingOverlay.sync(opts);
+
     function waitForCanvasReady(timeoutMs = 10000) {
         return new Promise((resolve) => {
             const done = () => {
@@ -547,7 +570,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772896665"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772897143"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
