@@ -46,7 +46,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772896243"></script>
+    <script src="wasm_exec.js?v=1772896665"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -167,6 +167,250 @@
             return await WebAssembly.instantiate(source, importObject);
         };
     }
+
+    const onboardingOverlay = (() => {
+        const pages = [
+            {
+                title: "写真に絵文字を貼るアプリ",
+                body: "スマホの写真に絵文字ステッカーを重ねて、すぐに保存・共有できます。"
+            },
+            {
+                title: "使い方は3ステップ",
+                body: "1. 画像を選択\n2. 右上ボタンで絵文字を追加\n3. ドラッグや拡大で位置調整"
+            },
+            {
+                title: "編集のコツ",
+                body: "絵文字をタップすると選択状態になります。角のハンドルでサイズ変更、左上のボタンで直前の絵文字を取り消せます。"
+            }
+        ];
+
+        let root = null;
+        let panel = null;
+        let viewport = null;
+        let track = null;
+        let dots = null;
+        let cta = null;
+        let slideNodes = [];
+        let dotNodes = [];
+        let pageIndex = 0;
+        let dragging = false;
+        let dragStartX = 0;
+        let dragOffsetX = 0;
+
+        function ensure() {
+            if (root) {
+                return;
+            }
+
+            root = document.createElement("div");
+            root.style.position = "fixed";
+            root.style.zIndex = "10001";
+            root.style.display = "none";
+            root.style.pointerEvents = "none";
+
+            panel = document.createElement("div");
+            panel.style.width = "100%";
+            panel.style.height = "100%";
+            panel.style.background = "linear-gradient(180deg, rgba(11, 27, 43, 0.90) 0%, rgba(4, 11, 20, 0.82) 100%)";
+            panel.style.backdropFilter = "blur(2px)";
+            panel.style.borderRadius = "0";
+            panel.style.display = "flex";
+            panel.style.flexDirection = "column";
+            panel.style.justifyContent = "center";
+            panel.style.alignItems = "center";
+            panel.style.gap = "14px";
+            panel.style.padding = "18px 14px";
+            panel.style.boxSizing = "border-box";
+            panel.style.pointerEvents = "auto";
+
+            viewport = document.createElement("div");
+            viewport.style.width = "100%";
+            viewport.style.maxWidth = "560px";
+            viewport.style.overflow = "hidden";
+            viewport.style.touchAction = "pan-y";
+
+            track = document.createElement("div");
+            track.style.display = "flex";
+            track.style.willChange = "transform";
+            viewport.appendChild(track);
+
+            slideNodes = pages.map((page) => {
+                const slide = document.createElement("section");
+                slide.style.flex = "0 0 100%";
+                slide.style.boxSizing = "border-box";
+                slide.style.padding = "6px 10px";
+                slide.style.color = "#f6fbff";
+
+                const card = document.createElement("div");
+                card.style.background = "rgba(255, 255, 255, 0.10)";
+                card.style.border = "1px solid rgba(255, 255, 255, 0.22)";
+                card.style.borderRadius = "16px";
+                card.style.padding = "20px 18px";
+                card.style.boxShadow = "0 10px 28px rgba(0, 0, 0, 0.22)";
+
+                const title = document.createElement("h2");
+                title.textContent = page.title;
+                title.style.margin = "0 0 10px";
+                title.style.fontSize = "clamp(20px, 5.2vw, 30px)";
+                title.style.fontWeight = "800";
+                title.style.letterSpacing = "0.01em";
+
+                const body = document.createElement("p");
+                body.textContent = page.body;
+                body.style.margin = "0";
+                body.style.fontSize = "clamp(14px, 3.8vw, 19px)";
+                body.style.lineHeight = "1.65";
+                body.style.whiteSpace = "pre-line";
+                body.style.opacity = "0.96";
+
+                card.appendChild(title);
+                card.appendChild(body);
+                slide.appendChild(card);
+                track.appendChild(slide);
+                return slide;
+            });
+
+            dots = document.createElement("div");
+            dots.style.display = "flex";
+            dots.style.justifyContent = "center";
+            dots.style.alignItems = "center";
+            dots.style.gap = "8px";
+            dotNodes = pages.map((_, index) => {
+                const dot = document.createElement("button");
+                dot.type = "button";
+                dot.setAttribute("aria-label", "onboarding page " + (index + 1));
+                dot.style.width = "9px";
+                dot.style.height = "9px";
+                dot.style.border = "0";
+                dot.style.borderRadius = "999px";
+                dot.style.padding = "0";
+                dot.style.background = "rgba(255, 255, 255, 0.36)";
+                dot.style.cursor = "pointer";
+                dot.style.transition = "all 160ms ease";
+                dot.addEventListener("click", () => {
+                    pageIndex = index;
+                    dragOffsetX = 0;
+                    update(true);
+                });
+                dots.appendChild(dot);
+                return dot;
+            });
+
+            cta = document.createElement("button");
+            cta.type = "button";
+            cta.textContent = "画像を選択してはじめる";
+            cta.style.height = "44px";
+            cta.style.padding = "0 18px";
+            cta.style.border = "0";
+            cta.style.borderRadius = "999px";
+            cta.style.background = "#e4ff4f";
+            cta.style.color = "#123";
+            cta.style.fontWeight = "800";
+            cta.style.fontSize = "14px";
+            cta.style.letterSpacing = "0.03em";
+            cta.style.cursor = "pointer";
+            cta.addEventListener("click", () => {
+                if (typeof window.openImagePicker === "function") {
+                    window.openImagePicker();
+                }
+            });
+
+            panel.appendChild(viewport);
+            panel.appendChild(dots);
+            panel.appendChild(cta);
+            root.appendChild(panel);
+            (document.body || document.documentElement).appendChild(root);
+
+            const onTouchStart = (event) => {
+                const touch = event.touches && event.touches[0];
+                if (!touch) {
+                    return;
+                }
+                dragging = true;
+                dragStartX = touch.clientX;
+                dragOffsetX = 0;
+                update(false);
+            };
+            const onTouchMove = (event) => {
+                if (!dragging) {
+                    return;
+                }
+                const touch = event.touches && event.touches[0];
+                if (!touch) {
+                    return;
+                }
+                dragOffsetX = touch.clientX - dragStartX;
+                update(false);
+            };
+            const onTouchEnd = () => {
+                if (!dragging) {
+                    return;
+                }
+                dragging = false;
+                const threshold = Math.max(36, (viewport.clientWidth || 320) * 0.16);
+                if (dragOffsetX <= -threshold && pageIndex < pages.length - 1) {
+                    pageIndex++;
+                } else if (dragOffsetX >= threshold && pageIndex > 0) {
+                    pageIndex--;
+                }
+                dragOffsetX = 0;
+                update(true);
+            };
+
+            viewport.addEventListener("touchstart", onTouchStart, { passive: true });
+            viewport.addEventListener("touchmove", onTouchMove, { passive: true });
+            viewport.addEventListener("touchend", onTouchEnd, { passive: true });
+            viewport.addEventListener("touchcancel", onTouchEnd, { passive: true });
+            window.addEventListener("resize", () => update(false));
+            update(false);
+        }
+
+        function update(animated) {
+            if (!track || !viewport) {
+                return;
+            }
+            const pageWidth = Math.max(1, viewport.clientWidth || 1);
+            const leftLimit = -(pages.length - 1 - pageIndex) * pageWidth;
+            const rightLimit = pageIndex * pageWidth;
+            const cappedOffset = Math.min(rightLimit, Math.max(leftLimit, dragOffsetX));
+            const x = -pageIndex * pageWidth + cappedOffset;
+            track.style.transition = animated ? "transform 220ms ease" : "none";
+            track.style.transform = "translate3d(" + x + "px, 0, 0)";
+
+            dotNodes.forEach((dot, index) => {
+                const active = index === pageIndex;
+                dot.style.width = active ? "24px" : "9px";
+                dot.style.background = active ? "#e4ff4f" : "rgba(255, 255, 255, 0.36)";
+            });
+            cta.style.display = pageIndex === pages.length - 1 ? "inline-flex" : "none";
+        }
+
+        function sync(opts = {}) {
+            ensure();
+            const visible = !!opts.visible;
+            if (!visible) {
+                root.style.display = "none";
+                return;
+            }
+
+            const left = Number(opts.left || 0);
+            const top = Number(opts.top || 0);
+            const width = Math.max(1, Number(opts.width || window.innerWidth || 1));
+            const height = Math.max(1, Number(opts.height || window.innerHeight || 1));
+            root.style.display = "block";
+            root.style.left = left + "px";
+            root.style.top = top + "px";
+            root.style.width = width + "px";
+            root.style.height = height + "px";
+            update(false);
+        }
+
+        return { sync };
+    })();
+
+    window.syncOnboardingOverlay = (opts = {}) => {
+        onboardingOverlay.sync(opts);
+    };
 
     const bootProgressBar = (() => {
         let root = null;
@@ -303,7 +547,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772896243"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772896665"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
