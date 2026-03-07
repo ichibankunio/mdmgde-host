@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -96,11 +97,12 @@ type server struct {
 
 	queue chan job
 
-	mu      sync.Mutex
-	records map[string]*jobRecord
-	running string
-	uiState map[string]uiState
-	threads map[string]threadContext
+	mu       sync.Mutex
+	records  map[string]*jobRecord
+	running  string
+	uiState  map[string]uiState
+	threads  map[string]threadContext
+	stateSeq uint64
 }
 
 type uiState struct {
@@ -1561,7 +1563,8 @@ func renderRecord(rec jobRecord) string {
 }
 
 func (s *server) putUIState(st uiState) string {
-	token := fmt.Sprintf("%x", time.Now().UnixNano())
+	seq := atomic.AddUint64(&s.stateSeq, 1)
+	token := fmt.Sprintf("%x-%x", time.Now().UnixNano(), seq)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.uiState[token] = st
