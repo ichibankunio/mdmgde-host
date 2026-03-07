@@ -33,9 +33,20 @@ Set at least:
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_APP_ID`
 - `DISCORD_GUILD_ID`
-- `CHATOPS_WORKDIR` (your private game repo path)
-- `CHATOPS_ALLOWED_REPOS` (owner/private-repo)
+- `CHATOPS_PROJECTS` (`repo -> private workdir` mapping)
 - `CHATOPS_PREVIEW_CMD` (defaults provided)
+
+`CHATOPS_PROJECTS` examples:
+
+```bash
+# JSON
+CHATOPS_PROJECTS='{"owner/game-a":"/repos/game-a","owner/game-b":"/repos/game-b"}'
+
+# CSV
+CHATOPS_PROJECTS="owner/game-a=/repos/game-a,owner/game-b=/repos/game-b"
+```
+
+Legacy single-project config (`CHATOPS_WORKDIR` + `CHATOPS_ALLOWED_REPOS`) is still supported.
 
 ## Start Worker
 
@@ -63,4 +74,3 @@ docs/previews/<branch-slug>/
 ```
 
 GitHub Pages should be enabled for this repository.
-

@@ -34,17 +34,18 @@ const (
 )
 
 type config struct {
-	BotToken      string
-	AppID         string
-	GuildID       string
-	WorkDir       string
-	AllowedRepos  map[string]struct{}
-	RunScript     string
-	MergeScript   string
-	DiscardScript string
-	PreviewURLTpl string
-	MaxLogLines   int
-	QueueCapacity int
+	BotToken        string
+	AppID           string
+	GuildID         string
+	AllowedRepos    map[string]struct{}
+	ProjectWorkDirs map[string]string
+	DefaultRepo     string
+	RunScript       string
+	MergeScript     string
+	DiscardScript   string
+	PreviewURLTpl   string
+	MaxLogLines     int
+	QueueCapacity   int
 }
 
 type job struct {
@@ -58,6 +59,7 @@ type job struct {
 	ChannelID   string
 	StatusMsgID string
 	Question    string
+	WorkDir     string
 	RequestedAt time.Time
 }
 
@@ -204,9 +206,6 @@ func loadConfig() (config, error) {
 	}
 	guildID := strings.TrimSpace(os.Getenv("DISCORD_GUILD_ID"))
 	workDir := strings.TrimSpace(os.Getenv("CHATOPS_WORKDIR"))
-	if workDir == "" {
-		workDir = "."
-	}
 	runScript := strings.TrimSpace(os.Getenv("CHATOPS_RUN_SCRIPT"))
 	if runScript == "" {
 		runScript = defaultRunScript
@@ -223,31 +222,98 @@ func loadConfig() (config, error) {
 	maxLogLines := parseIntEnv("CHATOPS_MAX_LOG_LINES", 120)
 	queueCapacity := parseIntEnv("CHATOPS_QUEUE_CAPACITY", 64)
 
+	projectWorkDirs, err := parseProjectWorkDirs(os.Getenv("CHATOPS_PROJECTS"))
+	if err != nil {
+		return config{}, err
+	}
 	allowed := make(map[string]struct{})
-	for _, repo := range strings.Split(os.Getenv("CHATOPS_ALLOWED_REPOS"), ",") {
-		repo = strings.TrimSpace(repo)
-		if repo == "" {
-			continue
+	defaultRepo := ""
+	if len(projectWorkDirs) > 0 {
+		repos := make([]string, 0, len(projectWorkDirs))
+		for repo := range projectWorkDirs {
+			repos = append(repos, repo)
 		}
-		allowed[repo] = struct{}{}
+		sort.Strings(repos)
+		defaultRepo = repos[0]
+		for _, repo := range repos {
+			allowed[repo] = struct{}{}
+		}
+	} else {
+		for _, repo := range strings.Split(os.Getenv("CHATOPS_ALLOWED_REPOS"), ",") {
+			repo = strings.TrimSpace(repo)
+			if repo == "" {
+				continue
+			}
+			allowed[repo] = struct{}{}
+			projectWorkDirs[repo] = workDir
+			if defaultRepo == "" {
+				defaultRepo = repo
+			}
+		}
 	}
 	if len(allowed) == 0 {
-		return config{}, errors.New("CHATOPS_ALLOWED_REPOS is required (comma-separated owner/repo)")
+		return config{}, errors.New("set CHATOPS_PROJECTS or CHATOPS_ALLOWED_REPOS")
+	}
+	if workDir == "" && len(projectWorkDirs) == 1 {
+		for _, wd := range projectWorkDirs {
+			workDir = wd
+		}
+	}
+	if workDir == "" {
+		workDir = "."
+	}
+	for repo, wd := range projectWorkDirs {
+		if strings.TrimSpace(wd) == "" {
+			projectWorkDirs[repo] = workDir
+		}
 	}
 
 	return config{
-		BotToken:      botToken,
-		AppID:         appID,
-		GuildID:       guildID,
-		WorkDir:       workDir,
-		AllowedRepos:  allowed,
-		RunScript:     runScript,
-		MergeScript:   mergeScript,
-		DiscardScript: discardScript,
-		PreviewURLTpl: previewTpl,
-		MaxLogLines:   maxLogLines,
-		QueueCapacity: queueCapacity,
+		BotToken:        botToken,
+		AppID:           appID,
+		GuildID:         guildID,
+		AllowedRepos:    allowed,
+		ProjectWorkDirs: projectWorkDirs,
+		DefaultRepo:     defaultRepo,
+		RunScript:       runScript,
+		MergeScript:     mergeScript,
+		DiscardScript:   discardScript,
+		PreviewURLTpl:   previewTpl,
+		MaxLogLines:     maxLogLines,
+		QueueCapacity:   queueCapacity,
 	}, nil
+}
+
+func parseProjectWorkDirs(raw string) (map[string]string, error) {
+	out := make(map[string]string)
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return out, nil
+	}
+	if strings.HasPrefix(raw, "{") {
+		if err := json.Unmarshal([]byte(raw), &out); err != nil {
+			return nil, fmt.Errorf("invalid CHATOPS_PROJECTS JSON: %w", err)
+		}
+		return out, nil
+	}
+	parts := strings.Split(raw, ",")
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		kv := strings.SplitN(p, "=", 2)
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("invalid CHATOPS_PROJECTS entry: %s", p)
+		}
+		repo := strings.TrimSpace(kv[0])
+		wd := strings.TrimSpace(kv[1])
+		if repo == "" || wd == "" {
+			return nil, fmt.Errorf("invalid CHATOPS_PROJECTS entry: %s", p)
+		}
+		out[repo] = wd
+	}
+	return out, nil
 }
 
 func parseIntEnv(key string, fallback int) int {
@@ -312,6 +378,7 @@ func (s *server) registerCommands() error {
 			Name:        "merge",
 			Description: "Merge a task branch into main",
 			Options: []*discordgo.ApplicationCommandOption{
+				{Name: "repo", Description: "owner/repo", Type: discordgo.ApplicationCommandOptionString, Required: false},
 				{Name: "branch", Description: "task/<...>", Type: discordgo.ApplicationCommandOptionString, Required: false},
 			},
 		},
@@ -319,6 +386,7 @@ func (s *server) registerCommands() error {
 			Name:        "discard",
 			Description: "Abandon a task branch and return to main",
 			Options: []*discordgo.ApplicationCommandOption{
+				{Name: "repo", Description: "owner/repo", Type: discordgo.ApplicationCommandOptionString, Required: false},
 				{Name: "branch", Description: "task/<...>", Type: discordgo.ApplicationCommandOptionString, Required: false},
 			},
 		},
@@ -326,6 +394,7 @@ func (s *server) registerCommands() error {
 			Name:        "preview",
 			Description: "Build preview URL for a branch",
 			Options: []*discordgo.ApplicationCommandOption{
+				{Name: "repo", Description: "owner/repo", Type: discordgo.ApplicationCommandOptionString, Required: false},
 				{Name: "branch", Description: "task/<...>", Type: discordgo.ApplicationCommandOptionString, Required: false},
 			},
 		},
@@ -400,7 +469,7 @@ func (s *server) handleImprove(i *discordgo.InteractionCreate, data discordgo.Ap
 	branch := strings.TrimSpace(optionString(data.Options, "branch"))
 	task := strings.TrimSpace(optionString(data.Options, "task"))
 	if repo == "" || branch == "" || task == "" {
-		s.openBranchPicker(i, "improve", "")
+		s.openBranchPicker(i, "improve", repo)
 		return
 	}
 	j, err := s.newImproveJob(repo, branch, task, requesterID(i), i.ChannelID, true)
@@ -413,18 +482,20 @@ func (s *server) handleImprove(i *discordgo.InteractionCreate, data discordgo.Ap
 }
 
 func (s *server) handleMerge(i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) {
+	repo := strings.TrimSpace(optionString(data.Options, "repo"))
 	branch := strings.TrimSpace(optionString(data.Options, "branch"))
 	if branch == "" {
-		s.openBranchPicker(i, "merge", "")
+		s.openBranchPicker(i, "merge", repo)
 		return
 	}
-	s.askBranchConfirm(i, "merge", branch)
+	s.askBranchConfirm(i, "merge", repo, branch)
 }
 
 func (s *server) handlePreview(i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) {
+	repo := strings.TrimSpace(optionString(data.Options, "repo"))
 	branch := strings.TrimSpace(optionString(data.Options, "branch"))
 	if branch == "" {
-		s.openBranchPicker(i, "preview", "")
+		s.openBranchPicker(i, "preview", repo)
 		return
 	}
 	if s.cfg.PreviewURLTpl == "" {
@@ -437,17 +508,22 @@ func (s *server) handlePreview(i *discordgo.InteractionCreate, data discordgo.Ap
 }
 
 func (s *server) handleDiscard(i *discordgo.InteractionCreate, data discordgo.ApplicationCommandInteractionData) {
+	repo := strings.TrimSpace(optionString(data.Options, "repo"))
 	branch := strings.TrimSpace(optionString(data.Options, "branch"))
 	if branch == "" {
-		s.openBranchPicker(i, "discard", "")
+		s.openBranchPicker(i, "discard", repo)
 		return
 	}
-	s.askBranchConfirm(i, "discard", branch)
+	s.askBranchConfirm(i, "discard", repo, branch)
 }
 
 func (s *server) newRunJob(repo, task, requestedBy, channelID string, createThread bool) (job, error) {
-	if _, ok := s.cfg.AllowedRepos[repo]; !ok {
-		return job{}, fmt.Errorf("repo `%s` is not in CHATOPS_ALLOWED_REPOS", repo)
+	if repo == "" {
+		repo = s.defaultRepo()
+	}
+	workDir, err := s.resolveWorkDir(repo)
+	if err != nil {
+		return job{}, err
 	}
 	jobID := fmt.Sprintf("%s-%d", time.Now().Format("20060102-150405"), time.Now().UnixNano()%10000)
 	j := job{
@@ -457,6 +533,7 @@ func (s *server) newRunJob(repo, task, requestedBy, channelID string, createThre
 		Task:        task,
 		RequestedBy: requestedBy,
 		ChannelID:   channelID,
+		WorkDir:     workDir,
 		RequestedAt: time.Now(),
 	}
 	if createThread {
@@ -468,8 +545,12 @@ func (s *server) newRunJob(repo, task, requestedBy, channelID string, createThre
 }
 
 func (s *server) newImproveJob(repo, branch, task, requestedBy, channelID string, createThread bool) (job, error) {
-	if _, ok := s.cfg.AllowedRepos[repo]; !ok {
-		return job{}, fmt.Errorf("repo `%s` is not in CHATOPS_ALLOWED_REPOS", repo)
+	if repo == "" {
+		repo = s.defaultRepo()
+	}
+	workDir, err := s.resolveWorkDir(repo)
+	if err != nil {
+		return job{}, err
 	}
 	if !strings.HasPrefix(branch, "task/") {
 		return job{}, errors.New("branch must start with `task/`")
@@ -483,6 +564,7 @@ func (s *server) newImproveJob(repo, branch, task, requestedBy, channelID string
 		Branch:      branch,
 		RequestedBy: requestedBy,
 		ChannelID:   channelID,
+		WorkDir:     workDir,
 		RequestedAt: time.Now(),
 	}
 	if createThread {
@@ -703,7 +785,32 @@ func (s *server) openRunRepoPicker(i *discordgo.InteractionCreate) {
 }
 
 func (s *server) openBranchPicker(i *discordgo.InteractionCreate, action, repo string) {
-	branches, err := s.listTaskBranches()
+	if repo == "" {
+		if len(s.cfg.ProjectWorkDirs) > 1 {
+			repos := s.allowedRepoList()
+			options := make([]discordgo.SelectMenuOption, 0, len(repos))
+			for _, r := range repos {
+				options = append(options, discordgo.SelectMenuOption{Label: r, Value: r})
+			}
+			token := s.putUIState(uiState{
+				Action:      action + "_repo",
+				RequestedBy: requesterID(i),
+				ChannelID:   i.ChannelID,
+			})
+			s.respondWithComponents(i, "Select repo:", true, []discordgo.MessageComponent{
+				discordgo.ActionsRow{Components: []discordgo.MessageComponent{
+					discordgo.SelectMenu{
+						CustomID:    "ui:repo:" + token,
+						Placeholder: "Choose repo",
+						Options:     options,
+					},
+				}},
+			})
+			return
+		}
+		repo = s.defaultRepo()
+	}
+	branches, err := s.listTaskBranches(repo)
 	if err != nil {
 		s.respond(i, fmt.Sprintf("failed to list branches: %v", err), true)
 		return
@@ -745,17 +852,26 @@ func (s *server) onRepoSelected(i *discordgo.InteractionCreate, token string) {
 		return
 	}
 	repo := data.Values[0]
-	if st.Action != "run_repo" {
+	switch st.Action {
+	case "run_repo":
+		next := s.putUIState(uiState{
+			Action:      "run_task",
+			Repo:        repo,
+			RequestedBy: st.RequestedBy,
+			ChannelID:   st.ChannelID,
+		})
+		s.respondModal(i, "ui:modal:run:"+next, "New Run Task", "task", "Enter task for Codex")
+	case "improve_repo":
+		s.openBranchPicker(i, "improve", repo)
+	case "merge_repo":
+		s.openBranchPicker(i, "merge", repo)
+	case "discard_repo":
+		s.openBranchPicker(i, "discard", repo)
+	case "preview_repo":
+		s.openBranchPicker(i, "preview", repo)
+	default:
 		s.respond(i, "Unexpected repo selection.", true)
-		return
 	}
-	next := s.putUIState(uiState{
-		Action:      "run_task",
-		Repo:        repo,
-		RequestedBy: st.RequestedBy,
-		ChannelID:   st.ChannelID,
-	})
-	s.respondModal(i, "ui:modal:run:"+next, "New Run Task", "task", "Enter task for Codex")
 }
 
 func (s *server) onBranchSelected(i *discordgo.InteractionCreate, token string) {
@@ -775,7 +891,7 @@ func (s *server) onBranchSelected(i *discordgo.InteractionCreate, token string) 
 		url := s.previewURL(branch)
 		s.respond(i, fmt.Sprintf("preview: %s", url), true)
 	case "merge", "discard":
-		s.askBranchConfirm(i, st.Action, branch)
+		s.askBranchConfirm(i, st.Action, st.Repo, branch)
 	case "improve":
 		repo := st.Repo
 		if repo == "" {
@@ -794,13 +910,17 @@ func (s *server) onBranchSelected(i *discordgo.InteractionCreate, token string) 
 	}
 }
 
-func (s *server) askBranchConfirm(i *discordgo.InteractionCreate, action, branch string) {
+func (s *server) askBranchConfirm(i *discordgo.InteractionCreate, action, repo, branch string) {
 	if !strings.HasPrefix(branch, "task/") {
 		s.respond(i, "branch must start with `task/`", true)
 		return
 	}
+	if repo == "" {
+		repo = s.defaultRepo()
+	}
 	token := s.putUIState(uiState{
 		Action:      action,
+		Repo:        repo,
 		Branch:      branch,
 		RequestedBy: requesterID(i),
 		ChannelID:   i.ChannelID,
@@ -831,23 +951,37 @@ func (s *server) onConfirmSelected(i *discordgo.InteractionCreate, raw string) {
 	}
 	switch st.Action {
 	case "merge":
+		workDir, err := s.resolveWorkDir(st.Repo)
+		if err != nil {
+			s.respond(i, err.Error(), true)
+			return
+		}
 		j := job{
 			ID:          fmt.Sprintf("merge-%s-%d", time.Now().Format("20060102-150405"), time.Now().UnixNano()%10000),
 			Type:        jobTypeMerge,
+			Repo:        st.Repo,
 			Branch:      st.Branch,
 			RequestedBy: requesterID(i),
 			ChannelID:   i.ChannelID,
+			WorkDir:     workDir,
 			RequestedAt: time.Now(),
 		}
 		s.enqueueJob(j)
 		s.respond(i, fmt.Sprintf("queued merge job `%s` for branch `%s`", j.ID, j.Branch), true)
 	case "discard":
+		workDir, err := s.resolveWorkDir(st.Repo)
+		if err != nil {
+			s.respond(i, err.Error(), true)
+			return
+		}
 		j := job{
 			ID:          fmt.Sprintf("discard-%s-%d", time.Now().Format("20060102-150405"), time.Now().UnixNano()%10000),
 			Type:        jobTypeDiscard,
+			Repo:        st.Repo,
 			Branch:      st.Branch,
 			RequestedBy: requesterID(i),
 			ChannelID:   i.ChannelID,
+			WorkDir:     workDir,
 			RequestedAt: time.Now(),
 		}
 		s.enqueueJob(j)
@@ -874,9 +1008,9 @@ func (s *server) onQuickAction(i *discordgo.InteractionCreate, token string) {
 		})
 		s.respondModal(i, "ui:modal:improve:"+next, "Improve Task", "task", "Enter additional change request")
 	case "quick_merge":
-		s.askBranchConfirm(i, "merge", st.Branch)
+		s.askBranchConfirm(i, "merge", st.Repo, st.Branch)
 	case "quick_discard":
-		s.askBranchConfirm(i, "discard", st.Branch)
+		s.askBranchConfirm(i, "discard", st.Repo, st.Branch)
 	case "quick_retry":
 		if st.Repo == "" || st.Task == "" {
 			s.respond(i, "cannot retry: missing repo/task", true)
@@ -990,7 +1124,7 @@ func (s *server) workerLoop() {
 
 func (s *server) executeRunJob(j job) (jobResult, error) {
 	cmd := exec.CommandContext(context.Background(), s.cfg.RunScript, j.Repo, j.Task, j.ID)
-	cmd.Dir = s.cfg.WorkDir
+	cmd.Dir = j.WorkDir
 	cmd.Env = append(os.Environ(),
 		"CHATOPS_JOB_ID="+j.ID,
 		"CHATOPS_REQUESTED_BY="+j.RequestedBy,
@@ -1042,7 +1176,7 @@ func (s *server) executeRunJob(j job) (jobResult, error) {
 
 func (s *server) executeMergeJob(j job) (jobResult, error) {
 	cmd := exec.CommandContext(context.Background(), s.cfg.MergeScript, j.Branch, j.ID)
-	cmd.Dir = s.cfg.WorkDir
+	cmd.Dir = j.WorkDir
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -1071,7 +1205,7 @@ func (s *server) executeMergeJob(j job) (jobResult, error) {
 
 func (s *server) executeDiscardJob(j job) (jobResult, error) {
 	cmd := exec.CommandContext(context.Background(), s.cfg.DiscardScript, j.Branch, j.ID)
-	cmd.Dir = s.cfg.WorkDir
+	cmd.Dir = j.WorkDir
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -1227,6 +1361,7 @@ func (s *server) notifyFailure(j job, res jobResult, err error) {
 		})
 		tokenDiscard := s.putUIState(uiState{
 			Action:      "quick_discard",
+			Repo:        j.Repo,
 			Branch:      j.Branch,
 			RequestedBy: j.RequestedBy,
 			ChannelID:   j.ChannelID,
@@ -1466,6 +1601,9 @@ func (s *server) allowedRepoList() []string {
 }
 
 func (s *server) defaultRepo() string {
+	if s.cfg.DefaultRepo != "" {
+		return s.cfg.DefaultRepo
+	}
 	repos := s.allowedRepoList()
 	if len(repos) == 0 {
 		return ""
@@ -1473,9 +1611,27 @@ func (s *server) defaultRepo() string {
 	return repos[0]
 }
 
-func (s *server) listTaskBranches() ([]string, error) {
+func (s *server) resolveWorkDir(repo string) (string, error) {
+	if repo == "" {
+		repo = s.defaultRepo()
+	}
+	if _, ok := s.cfg.AllowedRepos[repo]; !ok {
+		return "", fmt.Errorf("repo `%s` is not in CHATOPS_ALLOWED_REPOS", repo)
+	}
+	wd := strings.TrimSpace(s.cfg.ProjectWorkDirs[repo])
+	if wd == "" {
+		return "", fmt.Errorf("workdir for repo `%s` is not configured", repo)
+	}
+	return wd, nil
+}
+
+func (s *server) listTaskBranches(repo string) ([]string, error) {
+	workDir, err := s.resolveWorkDir(repo)
+	if err != nil {
+		return nil, err
+	}
 	cmd := exec.Command("git", "ls-remote", "--heads", "origin", "task/*")
-	cmd.Dir = s.cfg.WorkDir
+	cmd.Dir = workDir
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -1522,12 +1678,14 @@ func (s *server) quickActionComponents(j job, res jobResult) []discordgo.Message
 	})
 	tokenMerge := s.putUIState(uiState{
 		Action:      "quick_merge",
+		Repo:        j.Repo,
 		Branch:      res.Branch,
 		RequestedBy: j.RequestedBy,
 		ChannelID:   j.ChannelID,
 	})
 	tokenDiscard := s.putUIState(uiState{
 		Action:      "quick_discard",
+		Repo:        j.Repo,
 		Branch:      res.Branch,
 		RequestedBy: j.RequestedBy,
 		ChannelID:   j.ChannelID,
