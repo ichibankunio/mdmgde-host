@@ -90,7 +90,7 @@ wait_for_pages_deploy() {
     )"
     if [[ -n "${run_info}" && "${run_info}" != "null" ]]; then
       run_status="$(printf '%s' "${run_info}" | jq -r '.status')"
-      run_conclusion="$(printf '%s' "${run_info}" | jq -r '.conclusion // \"\"')"
+      run_conclusion="$(printf '%s' "${run_info}" | jq -r '.conclusion // ""')"
       run_id="$(printf '%s' "${run_info}" | jq -r '.databaseId')"
       if [[ "${run_status}" == "completed" ]]; then
         if [[ "${run_conclusion}" == "success" ]]; then
