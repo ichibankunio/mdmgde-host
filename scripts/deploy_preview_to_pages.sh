@@ -11,6 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEFAULT_PUBLIC_REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PRIVATE_REPO_DIR="$(pwd)"
 PRIVATE_DOCS_DIR="${CHATOPS_PRIVATE_DOCS_DIR:-${PRIVATE_REPO_DIR}/docs}"
+PRIVATE_WEB_DIR="${CHATOPS_PRIVATE_WEB_DIR:-${PRIVATE_REPO_DIR}/web}"
 PUBLIC_REPO_DIR="${CHATOPS_PUBLIC_REPO_DIR:-${DEFAULT_PUBLIC_REPO_DIR}}"
 BASE_BRANCH="${CHATOPS_PUBLIC_BASE_BRANCH:-main}"
 PREVIEW_ROOT="${CHATOPS_PREVIEW_ROOT_DIR:-docs/previews}"
@@ -55,6 +56,16 @@ for item in "${PRIVATE_DOCS_DIR}"/*; do
   cp -R "${item}" "${TARGET_DIR}/"
 done
 shopt -u nullglob
+
+# Fallback: if docs does not contain index.html, use web/index.html when available.
+if [[ ! -f "${TARGET_DIR}/index.html" && -f "${PRIVATE_WEB_DIR}/index.html" ]]; then
+  cp "${PRIVATE_WEB_DIR}/index.html" "${TARGET_DIR}/index.html"
+fi
+
+# Fallback: carry wasm_exec.js from web/ when docs does not provide it.
+if [[ ! -f "${TARGET_DIR}/wasm_exec.js" && -f "${PRIVATE_WEB_DIR}/wasm_exec.js" ]]; then
+  cp "${PRIVATE_WEB_DIR}/wasm_exec.js" "${TARGET_DIR}/wasm_exec.js"
+fi
 
 git add -f "${PREVIEW_ROOT}/${slug}"
 target_sha=""
