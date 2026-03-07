@@ -5,7 +5,76 @@
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>photo-emoji-3d-sticker</title>
     </head>
-    <script src="wasm_exec.js?v=1772886309"></script>
+    <script src="wasm_exec.js?v=1772887117"></script>
+    <script type="module">
+    import data from "https://cdn.jsdelivr.net/npm/@emoji-mart/data";
+    import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart";
+
+    const EMOJI_MART_BASE_WIDTH = 352;
+    const EMOJI_MART_BASE_HEIGHT = 435;
+    let emojiMartRoot = null;
+    let emojiMartHost = null;
+
+    function ensureEmojiMart() {
+        if (emojiMartRoot) {
+            return;
+        }
+        emojiMartRoot = document.createElement("div");
+        emojiMartRoot.style.position = "fixed";
+        emojiMartRoot.style.display = "none";
+        emojiMartRoot.style.zIndex = "10002";
+        emojiMartRoot.style.overflow = "hidden";
+        emojiMartRoot.style.borderRadius = "14px";
+        emojiMartRoot.style.boxShadow = "0 12px 32px rgba(0, 0, 0, 0.28)";
+        emojiMartRoot.style.background = "#fff";
+
+        emojiMartHost = document.createElement("div");
+        emojiMartHost.style.width = EMOJI_MART_BASE_WIDTH + "px";
+        emojiMartHost.style.height = EMOJI_MART_BASE_HEIGHT + "px";
+        emojiMartHost.style.transformOrigin = "top left";
+        emojiMartRoot.appendChild(emojiMartHost);
+
+        const picker = new Picker({
+            data,
+            locale: "ja",
+            theme: "light",
+            previewPosition: "none",
+            skinTonePosition: "none",
+            perLine: 8,
+            maxFrequentRows: 2,
+            onEmojiSelect: (emoji) => {
+                if (emoji && emoji.native) {
+                    window.__emojiMartSelected = emoji.native;
+                }
+            }
+        });
+        emojiMartHost.appendChild(picker);
+        (document.body || document.documentElement).appendChild(emojiMartRoot);
+    }
+
+    window.__emojiMartSelected = "";
+    window.syncEmojiMartPicker = (opts = {}) => {
+        ensureEmojiMart();
+        const open = !!opts.open;
+        if (!open) {
+            emojiMartRoot.style.display = "none";
+            return;
+        }
+
+        const width = Math.max(260, Number(opts.width || 0));
+        const height = Math.max(260, Number(opts.height || 0));
+        const left = Math.max(0, Number(opts.left || 0));
+        const top = Math.max(0, Number(opts.top || 0));
+        const scale = Math.min(width / EMOJI_MART_BASE_WIDTH, height / EMOJI_MART_BASE_HEIGHT);
+
+        emojiMartRoot.style.display = "block";
+        emojiMartRoot.style.left = left + "px";
+        emojiMartRoot.style.top = top + "px";
+        emojiMartRoot.style.width = width + "px";
+        emojiMartRoot.style.height = height + "px";
+        emojiMartHost.style.transform = "scale(" + Math.max(0.55, scale) + ")";
+    };
+    </script>
     <script>
     // Polyfill
     if (!WebAssembly.instantiateStreaming) {
@@ -150,7 +219,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772886309"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772887117"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
