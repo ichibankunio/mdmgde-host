@@ -14,6 +14,9 @@ PRIVATE_DOCS_DIR="${CHATOPS_PRIVATE_DOCS_DIR:-${PRIVATE_REPO_DIR}/docs}"
 PUBLIC_REPO_DIR="${CHATOPS_PUBLIC_REPO_DIR:-${DEFAULT_PUBLIC_REPO_DIR}}"
 BASE_BRANCH="${CHATOPS_PUBLIC_BASE_BRANCH:-main}"
 PREVIEW_ROOT="${CHATOPS_PREVIEW_ROOT_DIR:-docs/previews}"
+WAIT_PAGES="${CHATOPS_WAIT_PAGES_DEPLOY:-true}"
+PAGES_TIMEOUT_SECONDS="${CHATOPS_PAGES_TIMEOUT_SECONDS:-240}"
+PAGES_POLL_INTERVAL_SECONDS="${CHATOPS_PAGES_POLL_INTERVAL_SECONDS:-5}"
 
 if [[ ! -d "${PRIVATE_DOCS_DIR}" ]]; then
   echo "private docs dir not found: ${PRIVATE_DOCS_DIR}" >&2
@@ -54,11 +57,60 @@ done
 shopt -u nullglob
 
 git add -f "${PREVIEW_ROOT}/${slug}"
+target_sha=""
 if git diff --cached --quiet; then
-  :
+  target_sha="$(git rev-parse "origin/${BASE_BRANCH}")"
 else
   git commit -m "deploy(preview): ${BRANCH}" >/dev/null 2>&1
+  target_sha="$(git rev-parse HEAD)"
   git push origin "HEAD:${BASE_BRANCH}" >/dev/null 2>&1
+fi
+
+wait_for_pages_deploy() {
+  local repo_full run_info run_status run_conclusion run_id elapsed
+  if ! command -v gh >/dev/null 2>&1; then
+    return 0
+  fi
+  repo_full="$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null || true)"
+  if [[ -z "${repo_full}" ]]; then
+    return 0
+  fi
+  elapsed=0
+  while (( elapsed < PAGES_TIMEOUT_SECONDS )); do
+    run_info="$(
+      gh run list \
+        --repo "${repo_full}" \
+        --workflow pages.yml \
+        --branch "${BASE_BRANCH}" \
+        --event push \
+        --limit 20 \
+        --json databaseId,headSha,status,conclusion \
+        --jq "[.[] | select(.headSha == \"${target_sha}\")][0] | @json" \
+        2>/dev/null || true
+    )"
+    if [[ -n "${run_info}" && "${run_info}" != "null" ]]; then
+      run_status="$(printf '%s' "${run_info}" | jq -r '.status')"
+      run_conclusion="$(printf '%s' "${run_info}" | jq -r '.conclusion // \"\"')"
+      run_id="$(printf '%s' "${run_info}" | jq -r '.databaseId')"
+      if [[ "${run_status}" == "completed" ]]; then
+        if [[ "${run_conclusion}" == "success" ]]; then
+          return 0
+        fi
+        echo "pages workflow failed for run ${run_id} (conclusion=${run_conclusion})" >&2
+        return 1
+      fi
+    fi
+    sleep "${PAGES_POLL_INTERVAL_SECONDS}"
+    elapsed=$((elapsed + PAGES_POLL_INTERVAL_SECONDS))
+  done
+  echo "timeout waiting for Pages deploy (sha=${target_sha})" >&2
+  return 1
+}
+
+if [[ "${WAIT_PAGES}" == "true" ]]; then
+  if ! wait_for_pages_deploy; then
+    exit 1
+  fi
 fi
 
 build_default_url() {

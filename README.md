@@ -77,6 +77,8 @@ Recommended preview settings:
 CHATOPS_PREVIEW_CMD="/Users/ichibankunio/go/src/github.com/ichibankunio/mdmgde-host/scripts/deploy_preview_to_pages.sh"
 CHATOPS_PUBLIC_REPO_DIR="/Users/ichibankunio/go/src/github.com/ichibankunio/mdmgde-host"
 CHATOPS_PREVIEW_URL_TEMPLATE="https://ichibankunio.github.io/mdmgde-host/previews/{branch_slug}/"
+CHATOPS_WAIT_PAGES_DEPLOY=true
+CHATOPS_PAGES_TIMEOUT_SECONDS=240
 ```
 
 Legacy single-project config (`CHATOPS_WORKDIR` + `CHATOPS_ALLOWED_REPOS`) is still supported.
