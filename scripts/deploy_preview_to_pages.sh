@@ -80,7 +80,7 @@ if [[ ! -f "${TARGET_DIR}/wasm_exec.js" && -f "${PRIVATE_WEB_DIR}/wasm_exec.js" 
   cp "${PRIVATE_WEB_DIR}/wasm_exec.js" "${TARGET_DIR}/wasm_exec.js"
 fi
 
-git add -A "${PREVIEW_ROOT}"
+git add -A -f "${PREVIEW_ROOT}"
 git add -f "${target_rel}"
 target_sha=""
 if git diff --cached --quiet; then
