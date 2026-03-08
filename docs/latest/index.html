@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772937842"></script>
+    <script src="wasm_exec.js?v=1772938282"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -636,7 +636,7 @@
     async function bootWasm() {
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772937842"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772938282"), go.importObject);
             go.run(result.instance);
             await waitForCanvasReady();
         } catch (error) {
