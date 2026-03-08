@@ -9,15 +9,11 @@
                 margin: 0;
                 width: 100%;
                 height: 100%;
-                background: #000;
                 overflow: hidden;
                 position: fixed;
                 inset: 0;
                 overscroll-behavior: none;
                 touch-action: none;
-            }
-            canvas {
-                display: block;
             }
             input, textarea, select {
                 font-size: 16px !important;
@@ -76,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772933122"></script>
+    <script src="wasm_exec.js?v=1772933389"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -84,7 +80,7 @@
     const EMOJIBASE_JA_DATA_URL = "https://cdn.jsdelivr.net/npm/emojibase-data@16.0.0/ja/data.json";
 
     const EMOJI_MART_BASE_WIDTH = 352;
-    const EMOJI_MART_BASE_HEIGHT = 580;
+    const EMOJI_MART_BASE_HEIGHT = 435;
     let emojiMartRoot = null;
     let emojiMartHost = null;
     let emojiMartDataPromise = null;
@@ -290,8 +286,6 @@
                 }
             }
         });
-        picker.style.setProperty("--width", EMOJI_MART_BASE_WIDTH + "px");
-        picker.style.setProperty("--height", EMOJI_MART_BASE_HEIGHT + "px");
         picker.style.setProperty("--font-size", "16px");
         hardenPickerInputs(picker);
         emojiMartHost.appendChild(picker);
@@ -732,7 +726,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772933122"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772933389"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
