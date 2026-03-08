@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772941907"></script>
+    <script src="wasm_exec.js?v=1772942411"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -328,23 +328,33 @@
         const slides = [
             {
                 title: "ぷくぷくシールえもじフォトメーカー",
-                body: "ぷくぷくシール風の絵文字を、写真に貼り付けて楽しめるアプリです。1枚の写真から、かんたんにかわいいデコ画像を作れます。"
+                body: "ぷくぷくシール風の絵文字を、写真に貼り付けて楽しめるアプリです。1枚の写真から、かんたんにかわいいデコ画像を作れます。",
+                image: "onboarding/01-intro.jpg",
+                alt: "オンボーディング紹介画面のスクリーンショット"
             },
             {
                 title: "操作方法",
-                body: "画面をタップして絵文字を貼り付けましょう。貼り付けた絵文字を選択すると、拡大縮小・回転・削除ができます。右上の絵文字ボタンを押すと絵文字の変更ができます。貼り付けた絵文字をまとめて消したいときは、左上の「1つ消す」ボタンが便利です。"
+                body: "画面をタップして絵文字を貼り付けましょう。貼り付けた絵文字を選択すると、拡大縮小・回転・削除ができます。右上の絵文字ボタンを押すと絵文字の変更ができます。貼り付けた絵文字をまとめて消したいときは、左上の「1つ消す」ボタンが便利です。",
+                image: "onboarding/02-edit.jpg",
+                alt: "絵文字編集操作中のスクリーンショット"
             },
             {
                 title: "保存とシェア",
-                body: "「画像を保存」ボタンを押すとポップアップが表示されます。アルバムに保存したり、SNSへそのまま投稿したりできます。"
+                body: "「画像を保存」ボタンを押すとポップアップが表示されます。アルバムに保存したり、SNSへそのまま投稿したりできます。",
+                image: "onboarding/03-save.jpg",
+                alt: "保存とシェア画面のスクリーンショット"
             },
             {
                 title: "SNSでシェアしよう！",
-                body: "画像はInstagramのストーリーズに投稿するのにピッタリのサイズです。シェアしてみてください！"
+                body: "画像はInstagramのストーリーズに投稿するのにピッタリのサイズです。シェアしてみてください！",
+                image: "onboarding/04-share.jpg",
+                alt: "SNS共有向け画像のスクリーンショット"
             },
             {
                 title: "始めよう！",
-                body: "画像を選択ボタンから、デコレーションしたい画像を選択して始めましょう！"
+                body: "画像を選択ボタンから、デコレーションしたい画像を選択して始めましょう！",
+                image: "onboarding/05-select.jpg",
+                alt: "画像選択導線のスクリーンショット"
             }
         ];
         let root = null;
@@ -396,28 +406,25 @@
             root.style.inset = "0";
             root.style.display = "none";
             root.style.zIndex = "10001";
-            root.style.background = "#ffffff";
+            root.style.background = "linear-gradient(180deg, #fff7c8 0%, #fffef6 42%, #ffffff 100%)";
             root.style.pointerEvents = "none";
 
             panel = document.createElement("div");
             panel.style.position = "absolute";
-            panel.style.width = "min(88vw, 420px)";
-            panel.style.background = "rgba(255, 255, 255, 0.95)";
-            panel.style.borderRadius = "20px";
-            panel.style.border = "1px solid rgba(0, 0, 0, 0.14)";
-            panel.style.boxShadow = "0 14px 40px rgba(0, 0, 0, 0.12), 0 0 0 4px rgba(0, 0, 0, 0.05)";
-            panel.style.backdropFilter = "blur(2px)";
-            panel.style.overflow = "hidden";
+            panel.style.background = "transparent";
+            panel.style.display = "flex";
+            panel.style.flexDirection = "column";
             panel.style.pointerEvents = "auto";
             panel.style.fontFamily = '"Hiragino Maru Gothic ProN", "ヒラギノ丸ゴ ProN W4", "Yu Gothic", "YuGothic", "Meiryo", sans-serif';
 
             viewport = document.createElement("div");
             viewport.style.overflow = "hidden";
             viewport.style.touchAction = "pan-x";
-            viewport.style.padding = "24px 0 0";
+            viewport.style.padding = "max(16px, env(safe-area-inset-top, 0px)) 0 0";
             viewport.style.boxSizing = "border-box";
             viewport.style.whiteSpace = "normal";
-            viewport.style.height = "220px";
+            viewport.style.flex = "1";
+            viewport.style.minHeight = "280px";
             viewport.style.overscrollBehaviorX = "contain";
             viewport.style.overscrollBehaviorY = "contain";
             viewport.addEventListener("touchstart", (event) => {
@@ -469,13 +476,63 @@
             slides.forEach((slide) => {
                 const item = document.createElement("section");
                 item.style.flex = "0 0 100%";
+                item.style.height = "100%";
+                item.style.display = "flex";
+                item.style.flexDirection = "column";
+                item.style.gap = "14px";
                 item.style.boxSizing = "border-box";
-                item.style.padding = "0 22px";
+                item.style.padding = "0 20px";
+
+                const imageFrame = document.createElement("div");
+                imageFrame.style.flex = "0 0 clamp(220px, 45vh, 360px)";
+                imageFrame.style.borderRadius = "18px";
+                imageFrame.style.background = "rgba(255, 255, 255, 0.9)";
+                imageFrame.style.border = "1px solid rgba(0, 0, 0, 0.08)";
+                imageFrame.style.boxShadow = "0 10px 24px rgba(0, 0, 0, 0.08)";
+                imageFrame.style.overflow = "hidden";
+                imageFrame.style.display = "flex";
+                imageFrame.style.alignItems = "center";
+                imageFrame.style.justifyContent = "center";
+                imageFrame.style.position = "relative";
+
+                const screenshot = document.createElement("img");
+                screenshot.src = slide.image;
+                screenshot.alt = slide.alt;
+                screenshot.style.width = "100%";
+                screenshot.style.height = "100%";
+                screenshot.style.objectFit = "cover";
+                screenshot.style.display = "block";
+
+                const fallback = document.createElement("div");
+                fallback.textContent = "スクリーンショット準備中";
+                fallback.style.position = "absolute";
+                fallback.style.inset = "0";
+                fallback.style.display = "none";
+                fallback.style.alignItems = "center";
+                fallback.style.justifyContent = "center";
+                fallback.style.color = "#888";
+                fallback.style.fontSize = "13px";
+                fallback.style.fontWeight = "600";
+                fallback.style.background = "linear-gradient(180deg, #f7f7f7 0%, #ffffff 100%)";
+                screenshot.addEventListener("error", () => {
+                    screenshot.style.display = "none";
+                    fallback.style.display = "flex";
+                });
+                imageFrame.appendChild(screenshot);
+                imageFrame.appendChild(fallback);
+
+                const textWrap = document.createElement("div");
+                textWrap.style.background = "rgba(255, 255, 255, 0.9)";
+                textWrap.style.borderRadius = "14px";
+                textWrap.style.padding = "14px 14px 16px";
+                textWrap.style.border = "1px solid rgba(0, 0, 0, 0.08)";
+                textWrap.style.boxShadow = "0 8px 20px rgba(0, 0, 0, 0.05)";
+                textWrap.style.minHeight = "130px";
 
                 const title = document.createElement("h2");
                 title.textContent = slide.title;
-                title.style.margin = "0 0 12px";
-                title.style.fontSize = "20px";
+                title.style.margin = "0 0 10px";
+                title.style.fontSize = "21px";
                 title.style.lineHeight = "1.35";
                 title.style.fontWeight = "700";
                 title.style.color = "#1f1f1f";
@@ -487,12 +544,14 @@
                 const body = document.createElement("p");
                 body.textContent = slide.body;
                 body.style.margin = "0";
-                body.style.fontSize = "14px";
-                body.style.lineHeight = "1.8";
+                body.style.fontSize = "15px";
+                body.style.lineHeight = "1.75";
                 body.style.color = "#4a4a4a";
 
-                item.appendChild(title);
-                item.appendChild(body);
+                textWrap.appendChild(title);
+                textWrap.appendChild(body);
+                item.appendChild(imageFrame);
+                item.appendChild(textWrap);
                 track.appendChild(item);
             });
             viewport.appendChild(track);
@@ -501,7 +560,10 @@
             footer.style.display = "flex";
             footer.style.alignItems = "center";
             footer.style.justifyContent = "space-between";
-            footer.style.padding = "12px 20px 16px";
+            footer.style.padding = "12px 20px max(16px, env(safe-area-inset-bottom, 0px))";
+            footer.style.background = "rgba(255, 255, 255, 0.94)";
+            footer.style.backdropFilter = "blur(2px)";
+            footer.style.borderTop = "1px solid rgba(0, 0, 0, 0.08)";
 
             const dotsRow = document.createElement("div");
             dotsRow.style.display = "flex";
@@ -582,15 +644,10 @@
             const top = Number(opts.top || 0);
             const width = Math.max(0, Number(opts.width || window.innerWidth));
             const height = Math.max(0, Number(opts.height || window.innerHeight));
-            const panelWidth = Math.max(280, Math.min(width - 24, 420));
-            const panelLeft = left + (width - panelWidth) / 2;
-            const panelTop = top + Math.max(18, Math.min(32, height * 0.04));
-            const maxPanelHeight = Math.max(180, height - 130);
-
-            panel.style.width = panelWidth + "px";
-            panel.style.left = panelLeft + "px";
-            panel.style.top = panelTop + "px";
-            panel.style.maxHeight = maxPanelHeight + "px";
+            panel.style.left = left + "px";
+            panel.style.top = top + "px";
+            panel.style.width = width + "px";
+            panel.style.height = height + "px";
         }
 
         function sync(opts = {}) {
@@ -635,7 +692,7 @@
     async function bootWasm() {
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772941907"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772942411"), go.importObject);
             go.run(result.instance);
             await waitForCanvasReady();
         } catch (error) {
