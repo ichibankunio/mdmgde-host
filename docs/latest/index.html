@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772936884"></script>
+    <script src="wasm_exec.js?v=1772937073"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -475,7 +475,7 @@
         function setActive(index, animate = true) {
             activeIndex = Math.max(0, Math.min(slides.length - 1, index));
             dots.forEach((dot, i) => {
-                dot.style.background = i === activeIndex ? "#4d4d4d" : "#d9d9d9";
+                dot.style.background = i === activeIndex ? "#ffd84a" : "#fff2b3";
                 dot.style.transform = i === activeIndex ? "scale(1.1)" : "scale(1)";
             });
             updateTrack(animate);
@@ -584,7 +584,7 @@
                 title.style.fontWeight = "700";
                 title.style.color = "#1f1f1f";
                 title.style.textDecoration = "underline";
-                title.style.textDecorationColor = "rgba(0, 0, 0, 0.2)";
+                title.style.textDecorationColor = "#ffd84a";
                 title.style.textDecorationThickness = "6px";
                 title.style.textUnderlineOffset = "-2px";
 
@@ -620,7 +620,7 @@
                 dot.style.border = "none";
                 dot.style.padding = "0";
                 dot.style.cursor = "pointer";
-                dot.style.background = "#e4e4e4";
+                dot.style.background = "#fff2b3";
                 dot.style.transition = "transform 120ms ease, background-color 120ms ease";
                 dot.addEventListener("click", () => {
                     setActive(i);
@@ -636,8 +636,8 @@
             action.style.padding = "0 14px";
             action.style.borderRadius = "999px";
             action.style.border = "none";
-            action.style.background = "#2f2f2f";
-            action.style.color = "#ffffff";
+            action.style.background = "#ffd84a";
+            action.style.color = "#2f2f2f";
             action.style.fontSize = "13px";
             action.style.fontWeight = "700";
             action.style.cursor = "pointer";
@@ -740,7 +740,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772936884"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772937073"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
