@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772947024"></script>
+    <script src="wasm_exec.js?v=1772947300"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -485,7 +485,7 @@
 
                 const imageFrame = document.createElement("div");
                 imageFrame.style.flex = "0 0 clamp(240px, 50vh, 420px)";
-                imageFrame.style.borderRadius = "18px";
+                imageFrame.style.borderRadius = "16px";
                 imageFrame.style.background = "linear-gradient(180deg, #fafafa 0%, #f2f2f2 100%)";
                 imageFrame.style.border = "1px solid rgba(0, 0, 0, 0.08)";
                 imageFrame.style.boxShadow = "0 10px 24px rgba(0, 0, 0, 0.08)";
@@ -494,12 +494,15 @@
                 imageFrame.style.alignItems = "center";
                 imageFrame.style.justifyContent = "center";
                 imageFrame.style.position = "relative";
+                imageFrame.style.padding = "8px";
+                imageFrame.style.boxSizing = "border-box";
 
                 const screenshot = document.createElement("img");
                 screenshot.src = slide.image;
                 screenshot.alt = slide.alt;
-                screenshot.style.width = "100%";
-                screenshot.style.height = "100%";
+                screenshot.style.width = "96%";
+                screenshot.style.height = "96%";
+                screenshot.style.borderRadius = "10px";
                 screenshot.style.objectFit = "contain";
                 screenshot.style.objectPosition = "center top";
                 screenshot.style.display = "block";
@@ -693,7 +696,7 @@
     async function bootWasm() {
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772947024"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772947300"), go.importObject);
             go.run(result.instance);
             await waitForCanvasReady();
         } catch (error) {
