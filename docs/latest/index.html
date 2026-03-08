@@ -9,11 +9,15 @@
                 margin: 0;
                 width: 100%;
                 height: 100%;
+                background: #000;
                 overflow: hidden;
                 position: fixed;
                 inset: 0;
                 overscroll-behavior: none;
                 touch-action: none;
+            }
+            canvas {
+                display: block;
             }
             input, textarea, select {
                 font-size: 16px !important;
@@ -72,7 +76,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772932859"></script>
+    <script src="wasm_exec.js?v=1772933122"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -728,7 +732,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772932859"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772933122"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
