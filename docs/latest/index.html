@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772934835"></script>
+    <script src="wasm_exec.js?v=1772935268"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -441,6 +441,14 @@
             {
                 title: "保存とシェア",
                 body: "「画像を保存」ボタンを押すとポップアップが表示されます。アルバムに保存したり、SNSへそのまま投稿したりできます。"
+            },
+            {
+                title: "SNSでシェアしよう！",
+                body: "画像はInstagramのストーリーズに投稿するのにピッタリのサイズです。シェアしてみてください！"
+            },
+            {
+                title: "始めよう！",
+                body: "画像を選択ボタンから、デコレーションしたい画像を選択して始めましょう！"
             }
         ];
         let root = null;
@@ -731,7 +739,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772934835"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772935268"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
