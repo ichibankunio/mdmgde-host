@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772932138"></script>
+    <script src="wasm_exec.js?v=1772932560"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -726,7 +726,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772932138"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772932560"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
@@ -865,7 +865,7 @@
             console.log("js was called")
             showSaveProgress();
 
-            const fileName = "ぷくぷくシールえもじ写真メーカー_" + getDate() + ".jpg";
+            const fileName = "3d-emoji-sticker_" + getDate() + ".jpg";
             const blob = new Blob([bytes], { type: 'image/jpeg' });
             const imageFile = new File([blob], fileName, { type: 'image/jpeg' });
 
