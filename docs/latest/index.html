@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772947300"></script>
+    <script src="wasm_exec.js?v=1772961734"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -352,7 +352,7 @@
             },
             {
                 title: "始めよう！",
-                body: "画像を選択ボタンから、デコレーションしたい画像を選択して始めましょう！",
+                body: "画像を選択ボタンから始めましょう！",
                 image: "onboarding/05_select.JPG",
                 alt: "画像選択導線のスクリーンショット"
             }
@@ -420,11 +420,11 @@
             viewport = document.createElement("div");
             viewport.style.overflow = "hidden";
             viewport.style.touchAction = "pan-x";
-            viewport.style.padding = "max(16px, env(safe-area-inset-top, 0px)) 0 0";
+            viewport.style.padding = "max(8px, env(safe-area-inset-top, 0px)) 0 0";
             viewport.style.boxSizing = "border-box";
             viewport.style.whiteSpace = "normal";
             viewport.style.flex = "1";
-            viewport.style.minHeight = "280px";
+            viewport.style.minHeight = "240px";
             viewport.style.overscrollBehaviorX = "contain";
             viewport.style.overscrollBehaviorY = "contain";
             viewport.addEventListener("touchstart", (event) => {
@@ -479,12 +479,12 @@
                 item.style.height = "100%";
                 item.style.display = "flex";
                 item.style.flexDirection = "column";
-                item.style.gap = "14px";
+                item.style.gap = "10px";
                 item.style.boxSizing = "border-box";
                 item.style.padding = "0 20px";
 
                 const imageFrame = document.createElement("div");
-                imageFrame.style.flex = "0 0 clamp(240px, 50vh, 420px)";
+                imageFrame.style.flex = "0 0 clamp(200px, 42vh, 340px)";
                 imageFrame.style.borderRadius = "16px";
                 imageFrame.style.background = "linear-gradient(180deg, #fafafa 0%, #f2f2f2 100%)";
                 imageFrame.style.border = "1px solid rgba(0, 0, 0, 0.08)";
@@ -500,8 +500,8 @@
                 const screenshot = document.createElement("img");
                 screenshot.src = slide.image;
                 screenshot.alt = slide.alt;
-                screenshot.style.width = "96%";
-                screenshot.style.height = "96%";
+                screenshot.style.width = "92%";
+                screenshot.style.height = "92%";
                 screenshot.style.borderRadius = "10px";
                 screenshot.style.objectFit = "contain";
                 screenshot.style.objectPosition = "center top";
@@ -528,10 +528,10 @@
                 const textWrap = document.createElement("div");
                 textWrap.style.background = "rgba(255, 255, 255, 0.9)";
                 textWrap.style.borderRadius = "14px";
-                textWrap.style.padding = "14px 14px 16px";
+                textWrap.style.padding = "12px 12px 14px";
                 textWrap.style.border = "1px solid rgba(0, 0, 0, 0.08)";
                 textWrap.style.boxShadow = "0 8px 20px rgba(0, 0, 0, 0.05)";
-                textWrap.style.minHeight = "130px";
+                textWrap.style.minHeight = "112px";
 
                 const title = document.createElement("h2");
                 title.textContent = slide.title;
@@ -696,7 +696,7 @@
     async function bootWasm() {
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772947300"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772961734"), go.importObject);
             go.run(result.instance);
             await waitForCanvasReady();
         } catch (error) {
@@ -845,6 +845,139 @@
             saveProgressBar.hide();
         }
 
+        function isIOSDevice() {
+            const ua = navigator.userAgent || "";
+            const platform = navigator.platform || "";
+            return /iPad|iPhone|iPod/.test(ua) || (platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        }
+
+        function getIOSPhotoSaveHandler() {
+            if (!isIOSDevice()) {
+                return null;
+            }
+            if (!window.webkit || !window.webkit.messageHandlers) {
+                return null;
+            }
+            const handler = window.webkit.messageHandlers.saveToPhotos;
+            if (!handler || typeof handler.postMessage !== "function") {
+                return null;
+            }
+            return handler;
+        }
+
+        function getIOSImagePickHandler() {
+            if (!isIOSDevice()) {
+                return null;
+            }
+            if (!window.webkit || !window.webkit.messageHandlers) {
+                return null;
+            }
+            const handler = window.webkit.messageHandlers.pickImage;
+            if (!handler || typeof handler.postMessage !== "function") {
+                return null;
+            }
+            return handler;
+        }
+
+        function requestNativeImagePick() {
+            const handler = getIOSImagePickHandler();
+            if (!handler) {
+                return false;
+            }
+            try {
+                handler.postMessage({ type: "pickImage" });
+                return true;
+            } catch (error) {
+                console.log("native image pick bridge failed:", error);
+                return false;
+            }
+        }
+
+        window.requestNativeImagePick = requestNativeImagePick;
+
+        function blobToDataURL(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        async function trySaveToIOSPhotosViaNative(blob, fileName) {
+            const handler = getIOSPhotoSaveHandler();
+            if (!handler) {
+                return false;
+            }
+
+            try {
+                const dataUrl = await blobToDataURL(blob);
+                handler.postMessage({
+                    type: "saveImageToPhotos",
+                    fileName: fileName,
+                    mimeType: blob.type || "image/png",
+                    dataUrl: dataUrl
+                });
+                setTimeout(() => {
+                    hideSaveProgress();
+                }, 6000);
+                return true;
+            } catch (error) {
+                console.log("native photo save bridge failed:", error);
+                return false;
+            }
+        }
+
+        async function fileFromDataUrl(dataUrl, fileName, mimeType) {
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+            const resolvedType = mimeType || blob.type || "image/jpeg";
+            const finalBlob = resolvedType === blob.type ? blob : blob.slice(0, blob.size, resolvedType);
+            return new File([finalBlob], fileName || "selected-image.jpg", { type: resolvedType });
+        }
+
+        // Optional callback from native host after PHPhotoLibrary save.
+        window.onNativePhotoSaveResult = function(result) {
+            hideSaveProgress();
+            if (result && result.ok === false) {
+                console.log("native photo save failed:", result.message || "unknown");
+            }
+        };
+
+        // Optional callback from native host after image pick.
+        window.onNativeImagePicked = async function(payload) {
+            if (payload && payload.ok === false) {
+                console.log("native image pick failed:", payload.message || "unknown");
+                return;
+            }
+            const dataUrl = payload && payload.dataUrl;
+            const base64 = payload && payload.base64;
+            const mimeType = payload && payload.mimeType;
+            const fileName = payload && payload.fileName;
+
+            let resolvedDataUrl = dataUrl;
+            if (!resolvedDataUrl && base64) {
+                const resolvedMime = mimeType || "image/jpeg";
+                resolvedDataUrl = "data:" + resolvedMime + ";base64," + base64;
+            }
+            if (!resolvedDataUrl) {
+                console.log("native image pick payload is invalid");
+                return;
+            }
+
+            try {
+                const file = await fileFromDataUrl(resolvedDataUrl, fileName, mimeType);
+                const onNativeImageSelected = window.onNativeImageSelected;
+                if (typeof onNativeImageSelected === "function") {
+                    onNativeImageSelected(file);
+                } else {
+                    console.log("onNativeImageSelected is not available");
+                }
+            } catch (error) {
+                console.log("native image pick conversion failed:", error);
+            }
+        };
+
         async function saveImage(bytes) {
             console.log("js was called")
             showSaveProgress();
@@ -852,6 +985,11 @@
             const fileName = "3d-emoji-sticker_" + getDate() + ".jpg";
             const blob = new Blob([bytes], { type: 'image/jpeg' });
             const imageFile = new File([blob], fileName, { type: 'image/jpeg' });
+
+            const savedByNativeBridge = await trySaveToIOSPhotosViaNative(blob, fileName);
+            if (savedByNativeBridge) {
+                return;
+            }
 
             if (typeof navigator.share === 'function') {
                 const shareData = {
