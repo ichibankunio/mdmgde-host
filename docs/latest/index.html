@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772942411"></script>
+    <script src="wasm_exec.js?v=1772943256"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -334,7 +334,7 @@
             },
             {
                 title: "操作方法",
-                body: "画面をタップして絵文字を貼り付けましょう。貼り付けた絵文字を選択すると、拡大縮小・回転・削除ができます。右上の絵文字ボタンを押すと絵文字の変更ができます。貼り付けた絵文字をまとめて消したいときは、左上の「1つ消す」ボタンが便利です。",
+                body: "画面をタップして絵文字を貼り付けましょう。貼り付けた絵文字を選択すると、拡大縮小・回転・削除ができます。右上の絵文字ボタンから絵文字の変更ができます。",
                 image: "onboarding/02-edit.jpg",
                 alt: "絵文字編集操作中のスクリーンショット"
             },
@@ -692,7 +692,7 @@
     async function bootWasm() {
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772942411"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772943256"), go.importObject);
             go.run(result.instance);
             await waitForCanvasReady();
         } catch (error) {
