@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772946244"></script>
+    <script src="wasm_exec.js?v=1772947024"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -329,31 +329,31 @@
             {
                 title: "ぷくぷくシールえもじフォトメーカー",
                 body: "ぷくぷくシール風の絵文字を、写真に貼り付けて楽しめるアプリです。1枚の写真から、かんたんにかわいいデコ画像を作れます。",
-                image: "onboarding/01-intro.jpg",
+                image: "onboarding/01_intro.jpg",
                 alt: "オンボーディング紹介画面のスクリーンショット"
             },
             {
                 title: "操作方法",
                 body: "画面をタップして絵文字を貼り付けましょう。貼り付けた絵文字を選択すると、拡大縮小・回転・削除ができます。右上の絵文字ボタンから絵文字の変更ができます。",
-                image: "onboarding/02-edit.jpg",
+                image: "onboarding/02_edit.jpg",
                 alt: "絵文字編集操作中のスクリーンショット"
             },
             {
                 title: "保存とシェア",
                 body: "「画像を保存」ボタンを押すとポップアップが表示されます。アルバムに保存したり、SNSへそのまま投稿したりできます。",
-                image: "onboarding/03-save.jpg",
+                image: "onboarding/03_save.jpg",
                 alt: "保存とシェア画面のスクリーンショット"
             },
             {
                 title: "SNSでシェアしよう！",
                 body: "画像はInstagramのストーリーズに投稿するのにピッタリのサイズです。シェアしてみてください！",
-                image: "onboarding/04-share.jpg",
+                image: "onboarding/04_share.jpg",
                 alt: "SNS共有向け画像のスクリーンショット"
             },
             {
                 title: "始めよう！",
                 body: "画像を選択ボタンから、デコレーションしたい画像を選択して始めましょう！",
-                image: "onboarding/05-select.jpg",
+                image: "onboarding/05_select.JPG",
                 alt: "画像選択導線のスクリーンショット"
             }
         ];
@@ -484,9 +484,9 @@
                 item.style.padding = "0 20px";
 
                 const imageFrame = document.createElement("div");
-                imageFrame.style.flex = "0 0 clamp(220px, 45vh, 360px)";
+                imageFrame.style.flex = "0 0 clamp(240px, 50vh, 420px)";
                 imageFrame.style.borderRadius = "18px";
-                imageFrame.style.background = "rgba(255, 255, 255, 0.9)";
+                imageFrame.style.background = "linear-gradient(180deg, #fafafa 0%, #f2f2f2 100%)";
                 imageFrame.style.border = "1px solid rgba(0, 0, 0, 0.08)";
                 imageFrame.style.boxShadow = "0 10px 24px rgba(0, 0, 0, 0.08)";
                 imageFrame.style.overflow = "hidden";
@@ -500,7 +500,8 @@
                 screenshot.alt = slide.alt;
                 screenshot.style.width = "100%";
                 screenshot.style.height = "100%";
-                screenshot.style.objectFit = "cover";
+                screenshot.style.objectFit = "contain";
+                screenshot.style.objectPosition = "center top";
                 screenshot.style.display = "block";
 
                 const fallback = document.createElement("div");
@@ -692,7 +693,7 @@
     async function bootWasm() {
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772946244"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772947024"), go.importObject);
             go.run(result.instance);
             await waitForCanvasReady();
         } catch (error) {
