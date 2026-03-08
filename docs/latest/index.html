@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772933795"></script>
+    <script src="wasm_exec.js?v=1772934371"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -431,16 +431,16 @@
     const onboardingOverlay = (() => {
         const slides = [
             {
-                title: "ぷくぷくシールえもじ写真メーカー へようこそ",
-                body: "写真を1枚選ぶだけで、3D風の絵文字ステッカーを重ねた画像を作れます。"
+                title: "ぷくぷくシールえもじ写真メーカー",
+                body: "ぷくぷくシール風の絵文字を、写真に貼り付けて楽しめるアプリです。1枚の写真から、かんたんにかわいいデコ画像を作れます。"
             },
             {
-                title: "操作はシンプル",
-                body: "右上のボタンで絵文字を追加。ドラッグで移動、ピンチで拡大縮小、回転ハンドルで角度調整できます。"
+                title: "操作方法",
+                body: "画面をタップして絵文字を貼り付けましょう。貼り付けた絵文字を選択すると、拡大縮小や削除ができます。右上の絵文字アイコンから絵文字の変更ができ、右上の「1つ消す」ボタンでまとめて消す前の調整も手軽です。"
             },
             {
-                title: "仕上げて保存",
-                body: "配置が決まったら「画像を保存」で共有や保存ができます。まずは画像を選択して始めましょう。"
+                title: "保存とシェア",
+                body: "「画像を保存」ボタンを押すとポップアップが表示されます。アルバムに保存したり、SNSへそのまま投稿したりできます。"
             }
         ];
         let root = null;
@@ -467,7 +467,7 @@
         function setActive(index, animate = true) {
             activeIndex = Math.max(0, Math.min(slides.length - 1, index));
             dots.forEach((dot, i) => {
-                dot.style.background = i === activeIndex ? "#4f4f4f" : "#d4d4d4";
+                dot.style.background = i === activeIndex ? "#f7dc63" : "#e4e4e4";
                 dot.style.transform = i === activeIndex ? "scale(1.1)" : "scale(1)";
             });
             updateTrack(animate);
@@ -499,8 +499,8 @@
             panel.style.width = "min(88vw, 420px)";
             panel.style.background = "rgba(255, 255, 255, 0.95)";
             panel.style.borderRadius = "20px";
-            panel.style.border = "1px solid rgba(0, 0, 0, 0.08)";
-            panel.style.boxShadow = "0 14px 40px rgba(0, 0, 0, 0.14)";
+            panel.style.border = "1px solid rgba(247, 220, 99, 0.65)";
+            panel.style.boxShadow = "0 14px 40px rgba(0, 0, 0, 0.14), 0 0 0 4px rgba(247, 220, 99, 0.18)";
             panel.style.backdropFilter = "blur(2px)";
             panel.style.overflow = "hidden";
             panel.style.pointerEvents = "auto";
@@ -574,6 +574,10 @@
                 title.style.lineHeight = "1.35";
                 title.style.fontWeight = "700";
                 title.style.color = "#1f1f1f";
+                title.style.textDecoration = "underline";
+                title.style.textDecorationColor = "rgba(247, 220, 99, 0.9)";
+                title.style.textDecorationThickness = "6px";
+                title.style.textUnderlineOffset = "-2px";
 
                 const body = document.createElement("p");
                 body.textContent = slide.body;
@@ -607,7 +611,7 @@
                 dot.style.border = "none";
                 dot.style.padding = "0";
                 dot.style.cursor = "pointer";
-                dot.style.background = "#d4d4d4";
+                dot.style.background = "#e4e4e4";
                 dot.style.transition = "transform 120ms ease, background-color 120ms ease";
                 dot.addEventListener("click", () => {
                     setActive(i);
@@ -623,11 +627,12 @@
             action.style.padding = "0 14px";
             action.style.borderRadius = "999px";
             action.style.border = "none";
-            action.style.background = "#545454";
-            action.style.color = "#fff";
+            action.style.background = "#f7dc63";
+            action.style.color = "#2b2b2b";
             action.style.fontSize = "13px";
             action.style.fontWeight = "700";
             action.style.cursor = "pointer";
+            action.style.boxShadow = "0 6px 14px rgba(198, 164, 35, 0.35)";
             action.addEventListener("click", () => {
                 const trigger = window.triggerSelectImageFromOnboarding;
                 if (typeof trigger === "function") {
@@ -726,7 +731,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772933795"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772934371"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
