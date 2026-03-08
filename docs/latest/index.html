@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772943256"></script>
+    <script src="wasm_exec.js?v=1772943568"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -539,7 +539,7 @@
                 title.style.textDecoration = "underline";
                 title.style.textDecorationColor = "#ffd84a";
                 title.style.textDecorationThickness = "6px";
-                title.style.textUnderlineOffset = "-2px";
+                title.style.textUnderlineOffset = "0.08em";
 
                 const body = document.createElement("p");
                 body.textContent = slide.body;
@@ -692,7 +692,7 @@
     async function bootWasm() {
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772943256"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772943568"), go.importObject);
             go.run(result.instance);
             await waitForCanvasReady();
         } catch (error) {
