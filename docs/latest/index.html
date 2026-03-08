@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772940472"></script>
+    <script src="wasm_exec.js?v=1772940818"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -604,7 +604,6 @@
         return { sync };
     })();
     window.syncOnboardingOverlay = (opts = {}) => onboardingOverlay.sync(opts);
-    onboardingOverlay.sync({ show: true });
 
     function waitForCanvasReady(timeoutMs = 10000) {
         return new Promise((resolve) => {
@@ -636,7 +635,7 @@
     async function bootWasm() {
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772940472"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772940818"), go.importObject);
             go.run(result.instance);
             await waitForCanvasReady();
         } catch (error) {
@@ -644,12 +643,11 @@
         }
     }
 
-    bootWasm();
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <script>
-        const saveProgressBar = (() => {
+        function createProgressBar(labelText) {
             let root = null;
             let bar = null;
             let timer = null;
@@ -682,7 +680,7 @@
                 panel.style.backdropFilter = 'blur(2px)';
 
                 const label = document.createElement('div');
-                label.textContent = '保存準備中...';
+                label.textContent = labelText;
                 label.style.marginBottom = '8px';
                 label.style.textAlign = 'center';
                 label.style.color = '#222';
@@ -754,10 +752,28 @@
             }
 
             return { show, hide, prepare };
-        })();
+        }
+
+        const saveProgressBar = createProgressBar('保存準備中...');
+        const loadingProgressBar = createProgressBar('ロード中...');
+
+        async function startApp() {
+            saveProgressBar.prepare();
+            loadingProgressBar.prepare();
+            loadingProgressBar.show();
+            try {
+                await Promise.all([
+                    bootWasm(),
+                    new Promise((resolve) => setTimeout(resolve, 2000))
+                ]);
+            } finally {
+                loadingProgressBar.hide();
+                onboardingOverlay.sync({ show: true });
+            }
+        }
 
         window.addEventListener('load', () => {
-            saveProgressBar.prepare();
+            startApp();
         });
 
         function showSaveProgress() {
