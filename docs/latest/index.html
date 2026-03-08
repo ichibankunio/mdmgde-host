@@ -72,7 +72,7 @@
         })();
         </script>
     </head>
-    <script src="wasm_exec.js?v=1772920233"></script>
+    <script src="wasm_exec.js?v=1772930428"></script>
     <script type="module">
     import { Picker } from "https://cdn.jsdelivr.net/npm/emoji-mart@5.6.0/+esm";
     
@@ -373,7 +373,7 @@
                 bar = document.createElement('div');
                 bar.style.height = '100%';
                 bar.style.width = '0%';
-                bar.style.background = '#69a51f';
+                bar.style.background = '#f7dc63';
                 bar.style.transition = 'width 120ms linear';
 
                 track.appendChild(bar);
@@ -726,7 +726,7 @@
         bootProgressBar.show();
         const go = new Go();
         try {
-            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772920233"), go.importObject);
+            const result = await WebAssembly.instantiateStreaming(fetch("game.wasm?v=1772930428"), go.importObject);
             bootProgressBar.set(94);
             go.run(result.instance);
             await waitForCanvasReady();
@@ -793,7 +793,7 @@
                 bar = document.createElement('div');
                 bar.style.height = '100%';
                 bar.style.width = '0%';
-                bar.style.background = '#69a51f';
+                bar.style.background = '#f7dc63';
                 bar.style.transition = 'width 140ms linear';
 
                 panel.appendChild(label);
