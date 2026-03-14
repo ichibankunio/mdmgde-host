@@ -1,0 +1,17 @@
+./context.go
+./graphics.go
+./image.go
+./input.go
+./input_glfw.go
+./keys.go
+./keys_glfw.go
+./monitor_glfw.go
+./run.go
+./run_notsinglethread.go
+./screensizeinfullscreen_notjs.go
+./shader.go
+./ui.go
+./ui_darwin.go
+./ui_glfw.go
+./window.go
+./window_glfw.go

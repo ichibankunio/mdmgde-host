@@ -1,0 +1,7 @@
+./atomic_andor_generic.go
+./atomic_wasm.go
+./doc.go
+./types.go
+./types_64bit.go
+./unaligned.go
+./atomic_wasm.s

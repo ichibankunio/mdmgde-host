@@ -1,0 +1,6 @@
+./atlas.go
+./fill.go
+./path.go
+./stencilshader.go
+./stroke.go
+./util.go

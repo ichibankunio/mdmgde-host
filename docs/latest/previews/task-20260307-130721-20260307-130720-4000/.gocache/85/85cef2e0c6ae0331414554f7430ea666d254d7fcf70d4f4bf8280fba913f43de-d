@@ -1,0 +1,8 @@
+./context.go
+./graphics.go
+./graphics_macos.go
+./graphics_notdebug.go
+./image.go
+./locationcache.go
+./program.go
+./shader.go

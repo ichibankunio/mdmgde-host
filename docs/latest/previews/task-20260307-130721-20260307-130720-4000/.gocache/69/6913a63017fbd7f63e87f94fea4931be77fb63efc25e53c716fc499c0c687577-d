@@ -1,0 +1,12 @@
+./assets.go
+./audio.go
+./easing.go
+./game.go
+./json.go
+./scene.go
+./sprite.go
+./text.go
+./tick.go
+./touch.go
+./tweener.go
+./vec2.go

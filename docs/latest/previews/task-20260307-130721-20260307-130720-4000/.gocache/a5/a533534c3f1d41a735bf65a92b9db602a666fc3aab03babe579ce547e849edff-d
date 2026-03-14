@@ -1,0 +1,3 @@
+./button.go
+./gamepad.go
+./gamepad_js.go

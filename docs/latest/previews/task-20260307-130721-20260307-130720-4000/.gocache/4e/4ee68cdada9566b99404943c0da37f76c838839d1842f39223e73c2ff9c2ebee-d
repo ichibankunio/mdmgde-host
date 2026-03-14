@@ -1,0 +1,8 @@
+./context.go
+./graphics.go
+./graphics_js.go
+./graphics_notdebug.go
+./image.go
+./locationcache.go
+./program.go
+./shader.go

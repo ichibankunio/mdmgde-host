@@ -1,0 +1,4 @@
+./bytes.go
+./math.go
+./shader.go
+./vertex.go
