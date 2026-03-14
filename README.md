@@ -77,6 +77,7 @@ Recommended preview settings:
 CHATOPS_PREVIEW_CMD="/Users/ichibankunio/go/src/github.com/ichibankunio/mdmgde-host/scripts/deploy_preview_to_pages.sh"
 CHATOPS_PUBLIC_REPO_DIR="/Users/ichibankunio/go/src/github.com/ichibankunio/mdmgde-host"
 CHATOPS_PRIVATE_WEB_DIR="/abs/path/to/private-repo/web"
+CHATOPS_WASM_EXEC_JS="/abs/path/to/go/lib/wasm/wasm_exec.js" # optional
 CHATOPS_PREVIEW_SINGLE_SLOT=true
 CHATOPS_PREVIEW_TARGET_DIR="docs/latest"
 CHATOPS_PREVIEW_URL_TEMPLATE="https://ichibankunio.github.io/mdmgde-host/"
@@ -103,7 +104,9 @@ Email is sent when:
 - merge is completed (`/merge`)
 - Codex requests additional user input (`need_input`)
 
-`deploy_preview_to_pages.sh` copies `private/docs/*` first, and if `index.html` is missing there, it falls back to `private/web/index.html` (and `wasm_exec.js`) so each game can keep a game-specific launcher page.
+`deploy_preview_to_pages.sh` copies `private/docs/*` first, and if `index.html` is missing there, it falls back to `private/web/index.html` so each game can keep a game-specific launcher page.
+For `wasm_exec.js`, it prioritizes `CHATOPS_WASM_EXEC_JS`, then the active Go toolchain (`go env GOROOT`), and finally `private/web/wasm_exec.js`. This keeps `game.wasm` and `wasm_exec.js` in sync across Go version upgrades.
+If `private/docs` does not contain `favicon.ico`, it also falls back to `private/web/favicon.ico`.
 `CHATOPS_PREVIEW_SINGLE_SLOT=true` keeps only one preview directory (default `docs/latest`) and replaces its contents on each deploy.
 It also appends a cache-buster query to `game.wasm` and `wasm_exec.js` references in `index.html` on each deploy to avoid stale browser cache mismatches.
 When `CHATOPS_WAIT_PAGES_DEPLOY=true`, the script waits for `pages.yml`. By default this wait is non-fatal (`CHATOPS_PAGES_WAIT_STRICT=false`) and only logs a warning on timeout/failure.

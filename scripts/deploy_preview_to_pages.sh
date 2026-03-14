@@ -12,6 +12,7 @@ DEFAULT_PUBLIC_REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PRIVATE_REPO_DIR="$(pwd)"
 PRIVATE_DOCS_DIR="${CHATOPS_PRIVATE_DOCS_DIR:-${PRIVATE_REPO_DIR}/docs}"
 PRIVATE_WEB_DIR="${CHATOPS_PRIVATE_WEB_DIR:-${PRIVATE_REPO_DIR}/web}"
+WASM_EXEC_JS_PATH="${CHATOPS_WASM_EXEC_JS:-}"
 PUBLIC_REPO_DIR="${CHATOPS_PUBLIC_REPO_DIR:-${DEFAULT_PUBLIC_REPO_DIR}}"
 BASE_BRANCH="${CHATOPS_PUBLIC_BASE_BRANCH:-main}"
 PREVIEW_ROOT="${CHATOPS_PREVIEW_ROOT_DIR:-docs/previews}"
@@ -77,9 +78,28 @@ if [[ ! -f "${TARGET_DIR}/index.html" && -f "${PRIVATE_WEB_DIR}/index.html" ]]; 
   cp "${PRIVATE_WEB_DIR}/index.html" "${TARGET_DIR}/index.html"
 fi
 
-# Fallback: carry wasm_exec.js from web/ when docs does not provide it.
-if [[ ! -f "${TARGET_DIR}/wasm_exec.js" && -f "${PRIVATE_WEB_DIR}/wasm_exec.js" ]]; then
-  cp "${PRIVATE_WEB_DIR}/wasm_exec.js" "${TARGET_DIR}/wasm_exec.js"
+# Resolve wasm_exec.js from the active Go toolchain first so it always matches game.wasm.
+if [[ -z "${WASM_EXEC_JS_PATH}" ]] && command -v go >/dev/null 2>&1; then
+  goroot="$(go env GOROOT 2>/dev/null || true)"
+  if [[ -n "${goroot}" && -f "${goroot}/lib/wasm/wasm_exec.js" ]]; then
+    WASM_EXEC_JS_PATH="${goroot}/lib/wasm/wasm_exec.js"
+  elif [[ -n "${goroot}" && -f "${goroot}/misc/wasm/wasm_exec.js" ]]; then
+    WASM_EXEC_JS_PATH="${goroot}/misc/wasm/wasm_exec.js"
+  fi
+fi
+
+# If explicit/toolchain wasm_exec.js is unavailable, fallback to private web copy.
+if [[ -z "${WASM_EXEC_JS_PATH}" && -f "${PRIVATE_WEB_DIR}/wasm_exec.js" ]]; then
+  WASM_EXEC_JS_PATH="${PRIVATE_WEB_DIR}/wasm_exec.js"
+fi
+
+if [[ -n "${WASM_EXEC_JS_PATH}" && -f "${WASM_EXEC_JS_PATH}" ]]; then
+  cp "${WASM_EXEC_JS_PATH}" "${TARGET_DIR}/wasm_exec.js"
+fi
+
+# Fallback: carry favicon from web/ when docs does not provide it.
+if [[ ! -f "${TARGET_DIR}/favicon.ico" && -f "${PRIVATE_WEB_DIR}/favicon.ico" ]]; then
+  cp "${PRIVATE_WEB_DIR}/favicon.ico" "${TARGET_DIR}/favicon.ico"
 fi
 
 cache_buster="${PREVIEW_CACHE_BUSTER}"
