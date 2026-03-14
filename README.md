@@ -81,7 +81,8 @@ CHATOPS_PREVIEW_SINGLE_SLOT=true
 CHATOPS_PREVIEW_TARGET_DIR="docs/latest"
 CHATOPS_PREVIEW_URL_TEMPLATE="https://ichibankunio.github.io/mdmgde-host/"
 CHATOPS_WAIT_PAGES_DEPLOY=true
-CHATOPS_PAGES_TIMEOUT_SECONDS=240
+CHATOPS_PAGES_TIMEOUT_SECONDS=600
+CHATOPS_PAGES_WAIT_STRICT=false
 CHATOPS_DELETE_BRANCH=true
 CHATOPS_DISCARD_DELETE_REMOTE=true
 ```
@@ -105,6 +106,7 @@ Email is sent when:
 `deploy_preview_to_pages.sh` copies `private/docs/*` first, and if `index.html` is missing there, it falls back to `private/web/index.html` (and `wasm_exec.js`) so each game can keep a game-specific launcher page.
 `CHATOPS_PREVIEW_SINGLE_SLOT=true` keeps only one preview directory (default `docs/latest`) and replaces its contents on each deploy.
 It also appends a cache-buster query to `game.wasm` and `wasm_exec.js` references in `index.html` on each deploy to avoid stale browser cache mismatches.
+When `CHATOPS_WAIT_PAGES_DEPLOY=true`, the script waits for `pages.yml`. By default this wait is non-fatal (`CHATOPS_PAGES_WAIT_STRICT=false`) and only logs a warning on timeout/failure.
 
 Legacy single-project config (`CHATOPS_WORKDIR` + `CHATOPS_ALLOWED_REPOS`) is still supported.
 

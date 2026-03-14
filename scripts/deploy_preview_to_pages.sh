@@ -19,8 +19,9 @@ PREVIEW_SINGLE_SLOT="${CHATOPS_PREVIEW_SINGLE_SLOT:-true}"
 PREVIEW_TARGET_DIR="${CHATOPS_PREVIEW_TARGET_DIR:-docs/latest}"
 PREVIEW_CACHE_BUSTER="${CHATOPS_PREVIEW_CACHE_BUSTER:-}"
 WAIT_PAGES="${CHATOPS_WAIT_PAGES_DEPLOY:-true}"
-PAGES_TIMEOUT_SECONDS="${CHATOPS_PAGES_TIMEOUT_SECONDS:-240}"
+PAGES_TIMEOUT_SECONDS="${CHATOPS_PAGES_TIMEOUT_SECONDS:-600}"
 PAGES_POLL_INTERVAL_SECONDS="${CHATOPS_PAGES_POLL_INTERVAL_SECONDS:-5}"
+PAGES_WAIT_STRICT="${CHATOPS_PAGES_WAIT_STRICT:-false}"
 
 if [[ ! -d "${PRIVATE_DOCS_DIR}" ]]; then
   echo "private docs dir not found: ${PRIVATE_DOCS_DIR}" >&2
@@ -144,7 +145,10 @@ wait_for_pages_deploy() {
 
 if [[ "${WAIT_PAGES}" == "true" ]]; then
   if ! wait_for_pages_deploy; then
-    exit 1
+    if [[ "${PAGES_WAIT_STRICT}" == "true" ]]; then
+      exit 1
+    fi
+    echo "warning: pages deploy wait failed, but continuing (set CHATOPS_PAGES_WAIT_STRICT=true to fail)" >&2
   fi
 fi
 
