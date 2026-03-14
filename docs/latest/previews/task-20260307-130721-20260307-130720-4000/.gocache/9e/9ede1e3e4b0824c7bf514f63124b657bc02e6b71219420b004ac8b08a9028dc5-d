@@ -1,0 +1,11 @@
+./cache.go
+./gotext.go
+./gotextfacesource.go
+./gotextseg.go
+./gox.go
+./goxcache.go
+./layout.go
+./limited.go
+./metadata.go
+./multi.go
+./text.go

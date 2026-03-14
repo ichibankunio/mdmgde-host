@@ -1,0 +1,10 @@
+./fd.go
+./fd_fsync_posix.go
+./fd_mutex.go
+./fd_poll_js.go
+./fd_posix.go
+./fd_unix.go
+./fd_unixjs.go
+./hook_unix.go
+./sendfile.go
+./sys_cloexec.go

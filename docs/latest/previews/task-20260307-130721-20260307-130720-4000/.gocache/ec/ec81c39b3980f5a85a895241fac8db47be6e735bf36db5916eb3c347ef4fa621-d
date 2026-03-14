@@ -1,0 +1,4 @@
+./language.go
+./language_table_gen.go
+./scripts.go
+./scripts_table.go

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>5分間弾幕避けたらお宝画像ゲット</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #111; }
+    canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+    #hint { position: fixed; left: 12px; top: 12px; color: #fff; font: 14px/1.4 system-ui; opacity: .8; }
+  </style>
+</head>
+<body>
+  <div id="hint">Tap to start (iOSは音や入力の初期化にタップが必要なことが多い)</div>
+  <script src="./wasm_exec.js"></script>
+  <script>
+    const go = new Go();
+
+    async function run() {
+      const resp = await fetch("./game.wasm");
+      const bytes = await resp.arrayBuffer();
+      const result = await WebAssembly.instantiate(bytes, go.importObject);
+      document.getElementById("hint")?.remove();
+      go.run(result.instance);
+    }
+
+    window.addEventListener("pointerdown", () => run(), { once: true });
+  </script>
+</body>
+</html>

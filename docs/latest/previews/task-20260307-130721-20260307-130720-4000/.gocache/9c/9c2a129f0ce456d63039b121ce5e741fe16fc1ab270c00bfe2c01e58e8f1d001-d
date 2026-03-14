@@ -1,0 +1,17 @@
+./const.go
+./glfw3.go
+./keys.go
+_cgo_gotypes.go
+api_darwin.cgo1.go
+build_darwin.cgo1.go
+cocoa_time_darwin.cgo1.go
+context_unix.cgo1.go
+error_unix.cgo1.go
+glfw_unix.cgo1.go
+input_unix.cgo1.go
+monitor_unix.cgo1.go
+native_darwin.cgo1.go
+posix_thread_darwin.cgo1.go
+util_unix.cgo1.go
+window_unix.cgo1.go
+_cgo_import.go

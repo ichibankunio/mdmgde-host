@@ -1,0 +1,11 @@
+./dirent.go
+./env_unix.go
+./fs_js.go
+./net.go
+./net_fake.go
+./net_js.go
+./syscall.go
+./syscall_js.go
+./tables_js.go
+./time_nofake.go
+./timestruct.go

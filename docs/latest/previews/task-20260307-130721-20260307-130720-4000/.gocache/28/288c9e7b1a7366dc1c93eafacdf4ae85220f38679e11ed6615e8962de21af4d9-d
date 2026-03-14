@@ -1,0 +1,6 @@
+./const.go
+./debug.go
+./default_purego.go
+./interface.go
+./procaddr.go
+./procaddr_darwin.go

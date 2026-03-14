@@ -1,0 +1,6 @@
+./graphics_darwin.go
+./shader_darwin.go
+./view_darwin.go
+./view_macos.go
+_cgo_gotypes.go
+displaylink_macos.cgo1.go

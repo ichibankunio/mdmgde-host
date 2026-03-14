@@ -1,0 +1,8 @@
+./debugprint.go
+./doc.go
+./file_notjs.go
+./fs.go
+./io.go
+./loadimage.go
+./loadimage_notmobile.go
+./shapes.go
