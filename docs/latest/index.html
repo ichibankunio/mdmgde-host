@@ -12,12 +12,12 @@
 </head>
 <body>
   <div id="hint">Tap to start (iOSは音や入力の初期化にタップが必要なことが多い)</div>
-  <script src="./wasm_exec.js?v=1773463629"></script>
+  <script src="./wasm_exec.js?v=1773464538"></script>
   <script>
     const go = new Go();
 
     async function run() {
-      const resp = await fetch("./game.wasm?v=1773463629");
+      const resp = await fetch("./game.wasm?v=1773464538");
       const bytes = await resp.arrayBuffer();
       const result = await WebAssembly.instantiate(bytes, go.importObject);
       document.getElementById("hint")?.remove();
